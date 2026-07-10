@@ -1,0 +1,22 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+*.pyo
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+*.out
+
+# Generated diagnostics and run outputs
+basis_diagnostics/
+stage_diagnostics/
+transport_output/
+figures/
+
+# Local environments
+.venv/
+venv/
+env/
+

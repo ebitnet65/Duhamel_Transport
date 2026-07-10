@@ -7,9 +7,7 @@ Place these files in the same directory:
 - `run_liouville_transport.py`
 
 The current `Liouville_transport.py` imports the required helpers from
-`phase_matched_response.py` directly. The older
-`Liouville_transport_import_patch.py` file is retained only as historical
-context.
+`phase_matched_response.py` directly.
 
 Run with the defaults:
 

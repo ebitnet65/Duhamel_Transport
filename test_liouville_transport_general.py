@@ -42,13 +42,13 @@ def two_level_model():
 
 def parameter_map():
     return general.ParameterMap(
-        base_params={
+        reference_params={
             "w0": 1.0,
             "gamma_phi": 0.1,
             "gamma1": 0.02,
             "theta": 0.0,
         },
-        controls=(general.ControlSpec("theta", base_value=0.0),),
+        controls=(general.ControlSpec("theta", reference_value=0.0),),
     )
 
 
@@ -118,20 +118,26 @@ def test_general_transport_matrix_reduces_to_identity_at_zero_control():
     assert np.max(result.residuals) < 1e-10
 
 
-def test_control_map_supports_subset_of_model_parameters():
+def test_control_map_uses_reference_model_and_uncertainty_scales():
     pmap = general.ParameterMap(
-        base_params={"theta": 0.0, "gamma_phi": 0.1, "w0": 1.0},
+        reference_params={"theta": 0.2, "gamma_phi": 0.1, "w0": 1.0},
         controls=(
-            general.ControlSpec("theta", base_value=0.0, scale=1.0),
-            general.ControlSpec("gamma_phi", base_value=0.1, scale=0.01),
+            general.ControlSpec("theta", reference_value=0.2, scale=0.05),
+            general.ControlSpec("gamma_phi", reference_value=0.1, scale=0.01),
         ),
     )
 
-    params = pmap.params(np.array([0.2, 3.0]))
+    reference_params = pmap.params(np.array([0.0, 0.0]))
+    shifted_params = pmap.params(np.array([2.0, 3.0]))
+    displacements = pmap.physical_displacements(np.array([2.0, 3.0]))
 
-    assert params["theta"] == 0.2
-    assert params["gamma_phi"] == 0.13
-    assert params["w0"] == 1.0
+    assert reference_params["theta"] == 0.2
+    assert reference_params["gamma_phi"] == 0.1
+    np.testing.assert_allclose(shifted_params["theta"], 0.3)
+    np.testing.assert_allclose(shifted_params["gamma_phi"], 0.13)
+    assert shifted_params["w0"] == 1.0
+    np.testing.assert_allclose(displacements["theta"], 0.1)
+    np.testing.assert_allclose(displacements["gamma_phi"], 0.03)
 
 
 def test_finite_difference_liouvillian_derivative_has_control_indices():

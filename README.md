@@ -85,17 +85,21 @@ Key quantities:
 
 ## General Transport Core
 
-`Liouville_transport_general.py` separates full model parameters from the
-selected lambda-vector controls. For example, a model may require `w0`,
+`Liouville_transport_general.py` separates the reference/best-guess model
+parameters from the selected lambda-vector controls. The lambda coordinates are
+dimensionless displacements from that reference model, usually measured in
+chosen uncertainty or variation scales. For example, a model may require `w0`,
 `gamma_phi`, `gamma1`, and `theta`, while the expansion is performed only with
-respect to `theta` or only with respect to `(theta, gamma_phi)`.
+respect to uncertain controls such as `theta` or `(theta, gamma_phi)`.
 
 The user-facing pieces are:
 
 - `LiouvilleModel`: supplies `L(params)`, `rho0(params)`, and the transition
   dipole `mu(params)`.
-- `ParameterMap`: maps a lambda vector into the full parameter dictionary.
-- `ControlSpec`: names each selected control coordinate and its scale.
+- `ParameterMap`: maps a lambda displacement into the full parameter
+  dictionary.
+- `ControlSpec`: names each selected control coordinate, its reference value,
+  and its physical scale.
 - `canonical_pathways`: builds nested-commutator RWA pathways.
 - `liouville_transport_matrix`: computes `T(lambda)` by projecting finite
   pathway states onto the lambda-zero pathway basis.
@@ -103,7 +107,9 @@ The user-facing pieces are:
 The current derivative helper,
 `finite_difference_liouvillian_derivatives`, fixes the indexing convention for
 first and second derivatives with respect to selected controls. It is intended
-as the reference backend before adding autodiff.
+as the reference backend before adding autodiff. These derivatives are with
+respect to dimensionless lambda coordinates at the best-guess model, not
+necessarily raw physical parameters.
 
 The test file `test_v_system_general.py` gives a concrete 3-level V-system
 example with states `|g>`, `|b>`, and `|d>`. The model defines:

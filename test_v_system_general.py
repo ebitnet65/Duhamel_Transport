@@ -117,9 +117,9 @@ def v_system_model():
 
 def v_system_parameter_map(*controls):
     if not controls:
-        controls = (general.ControlSpec("v_bd", base_value=0.0),)
+        controls = (general.ControlSpec("v_bd", reference_value=0.0),)
     return general.ParameterMap(
-        base_params={
+        reference_params={
             "omega_b": 1.0,
             "omega_d": 1.18,
             "v_bd": 0.0,
@@ -247,8 +247,8 @@ def test_v_system_general_transport_has_identity_at_zero_control():
 def test_v_system_can_expand_wrt_subset_of_parameters():
     model = v_system_model()
     pmap = v_system_parameter_map(
-        general.ControlSpec("v_bd", base_value=0.0, scale=0.02),
-        general.ControlSpec("mu_gd", base_value=0.08, scale=0.01),
+        general.ControlSpec("v_bd", reference_value=0.0, scale=0.02),
+        general.ControlSpec("mu_gd", reference_value=0.08, scale=0.01),
     )
 
     params = pmap.params([2.0, -3.0])

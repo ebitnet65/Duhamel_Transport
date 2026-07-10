@@ -10,6 +10,8 @@ This module keeps the current transport object as the central quantity:
 The user supplies a Liouvillian, an initial state, and a transition dipole
 operator. The code builds response pathways from nested-commutator side actions
 and projects finite-control pathway states onto the lambda=0 pathway basis.
+Here lambda is a dimensionless displacement from a reference/best-guess model,
+not the raw physical parameter value.
 
 The abstractions here are intentionally small. They are meant to be stable
 enough to support a later Duhamel/autodiff layer without tying the core transport
@@ -35,20 +37,31 @@ Pathway = tuple[tuple[str, str], ...]
 class ControlSpec:
     """One selected expansion/control coordinate inside a larger parameter set.
 
-    `scale` lets the user keep lambda dimensionless while perturbing parameters
-    with natural physical units.
+    `reference_value` is the best-guess physical parameter value. `scale` is
+    the physical uncertainty or variation scale assigned to that parameter.
+    The actual model parameter is
+
+        p_mu(lambda) = reference_value + scale * lambda_mu.
+
+    Thus lambda_mu is dimensionless and measures displacement in units of the
+    chosen model-parameter uncertainty.
     """
 
     name: str
-    base_value: float
+    reference_value: float
     scale: float = 1.0
 
 
 @dataclass(frozen=True)
 class ParameterMap:
-    """Map a selected lambda-vector into full model parameters."""
+    """Map a selected lambda-vector into full model parameters.
 
-    base_params: Mapping[str, float]
+    `reference_params` is the full best-guess parameter dictionary. The selected
+    controls specify which entries are allowed to move under the lambda-vector.
+    Entries not listed in `controls` remain fixed at their reference values.
+    """
+
+    reference_params: Mapping[str, float]
     controls: tuple[ControlSpec, ...]
 
     @property
@@ -56,7 +69,13 @@ class ParameterMap:
         return len(self.controls)
 
     def params(self, lam: Array | Sequence[float] | float | None = None) -> dict[str, float]:
-        params = dict(self.base_params)
+        """Return physical model parameters at a lambda displacement.
+
+        `lam = 0` returns the reference/best-guess model, not a model with zero
+        physical parameter values.
+        """
+
+        params = dict(self.reference_params)
         if lam is None:
             lam_array = np.zeros(self.control_dimension, dtype=float)
         else:
@@ -66,11 +85,26 @@ class ParameterMap:
                 f"Expected {self.control_dimension} control values, got {lam_array.size}"
             )
         for value, control in zip(lam_array, self.controls, strict=True):
-            params[control.name] = control.base_value + control.scale * float(value)
+            params[control.name] = control.reference_value + control.scale * float(value)
         return params
 
     def zero(self) -> Array:
+        """Return the lambda-vector for the reference/best-guess model."""
+
         return np.zeros(self.control_dimension, dtype=float)
+
+    def physical_displacements(self, lam: Array | Sequence[float] | float) -> dict[str, float]:
+        """Return physical parameter shifts implied by a lambda displacement."""
+
+        lam_array = np.asarray(lam, dtype=float).reshape(-1)
+        if lam_array.size != self.control_dimension:
+            raise ValueError(
+                f"Expected {self.control_dimension} control values, got {lam_array.size}"
+            )
+        return {
+            control.name: control.scale * float(value)
+            for value, control in zip(lam_array, self.controls, strict=True)
+        }
 
 
 @dataclass(frozen=True)
@@ -139,7 +173,7 @@ class LiouvilleModel:
 
 @dataclass(frozen=True)
 class CanonicalPathway:
-    """A named pathway retained in the lambda=0 transport basis."""
+    """A named pathway retained in the lambda=0 reference transport basis."""
 
     sector: str
     pathway: Pathway
@@ -505,7 +539,7 @@ def independent_canonical_pathways(
     eta: float = 1e-3,
     rtol: float = 1e-10,
 ) -> tuple[list[CanonicalPathway], Array]:
-    """Return a rank-reduced canonical pathway list at lambda=0."""
+    """Return a rank-reduced canonical pathway list at the reference model."""
 
     matrix = liouville_pathway_basis_matrix(
         model,
@@ -610,6 +644,10 @@ def finite_difference_liouvillian_derivatives(
 
     This is a placeholder backend for the Duhamel/autodiff layer. It fixes the
     tensor indexing convention before a JAX backend is introduced.
+
+    Derivatives are taken with respect to the dimensionless lambda coordinates
+    at the reference/best-guess model. For a control with `scale != 1`, this is
+    a scaled physical derivative.
     """
 
     n_controls = parameter_map.control_dimension

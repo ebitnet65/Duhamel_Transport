@@ -105,6 +105,17 @@ The current derivative helper,
 first and second derivatives with respect to selected controls. It is intended
 as the reference backend before adding autodiff.
 
+The test file `test_v_system_general.py` gives a concrete 3-level V-system
+example with states `|g>`, `|b>`, and `|d>`. The model defines:
+
+- a Hamiltonian with bright/dark energies and optional bright-dark coupling;
+- radiative decay from `|b>` and `|d>` to `|g>`;
+- bright-dark pure dephasing;
+- an explicit transition dipole split into `mu_plus` and `mu_minus`.
+
+That explicit dipole-component split is important for systems where the ground
+state is not ordered above the excited states in the matrix basis.
+
 ## Notes
 
 Generated plots and diagnostic output directories are ignored by git. Recreate

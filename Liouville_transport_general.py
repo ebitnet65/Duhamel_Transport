@@ -81,6 +81,7 @@ class LiouvilleModel:
     liouvillian: Callable[[Params], Array]
     initial_state: Callable[[Params], Array]
     transition_dipole: Callable[[Params], Array]
+    dipole_components: Callable[[Params], tuple[Array, Array]] | None = None
     resolvent: Callable[[Array, float, float], Array] | None = None
     propagator: Callable[[Array, float], Array] | None = None
 
@@ -109,6 +110,20 @@ class LiouvilleModel:
         if operator.shape != expected:
             raise ValueError(f"Transition dipole shape {operator.shape}, expected {expected}")
         return operator
+
+    def mu_components(self, params: Params) -> tuple[Array, Array]:
+        if self.dipole_components is None:
+            return split_transition_dipole(self.mu(params))
+        mu_plus, mu_minus = self.dipole_components(params)
+        expected = (self.dimension, self.dimension)
+        mu_plus = np.asarray(mu_plus, dtype=complex)
+        mu_minus = np.asarray(mu_minus, dtype=complex)
+        if mu_plus.shape != expected or mu_minus.shape != expected:
+            raise ValueError(
+                "Dipole component shapes must both be "
+                f"{expected}, got {mu_plus.shape} and {mu_minus.shape}"
+            )
+        return mu_plus, mu_minus
 
     def G(self, L: Array, omega: float, eta: float) -> Array:
         if self.resolvent is not None:
@@ -204,10 +219,18 @@ def split_transition_dipole(mu: Array) -> tuple[Array, Array]:
     return mu_plus, mu_minus
 
 
-def field_operator(mu: Array, field: str) -> Array:
+def field_operator(
+    mu: Array,
+    field: str,
+    dipole_components: tuple[Array, Array] | None = None,
+) -> Array:
     """Return the RWA dipole component coupled to field '+' or '-'."""
 
-    mu_plus, mu_minus = split_transition_dipole(mu)
+    mu_plus, mu_minus = (
+        split_transition_dipole(mu)
+        if dipole_components is None
+        else dipole_components
+    )
     if field == "+":
         return mu_minus
     if field == "-":
@@ -223,11 +246,16 @@ def phase_sign_for_field(field: str) -> int:
     raise ValueError("field must be '+' or '-'")
 
 
-def interaction_super(side: str, field: str, mu: Array) -> Array:
+def interaction_super(
+    side: str,
+    field: str,
+    mu: Array,
+    dipole_components: tuple[Array, Array] | None = None,
+) -> Array:
     """Signed nested-commutator side action for one RWA interaction."""
 
     side = side.upper()
-    component = field_operator(mu, field)
+    component = field_operator(mu, field, dipole_components)
     if side == "L":
         return left_super(component)
     if side == "R":
@@ -309,10 +337,11 @@ def pathway_state_point(
     L = model.L(params)
     rho = model.rho0(params)
     mu = model.mu(params)
+    mu_components = model.mu_components(params)
 
-    J1 = interaction_super(*pathway[0], mu=mu)
-    J2 = interaction_super(*pathway[1], mu=mu)
-    J3 = interaction_super(*pathway[2], mu=mu)
+    J1 = interaction_super(*pathway[0], mu=mu, dipole_components=mu_components)
+    J2 = interaction_super(*pathway[1], mu=mu, dipole_components=mu_components)
+    J3 = interaction_super(*pathway[2], mu=mu, dipole_components=mu_components)
 
     G1 = model.G(L, omega1_sign_for_sector(sector) * omega1, eta)
     G3 = model.G(L, omega3, eta)
@@ -422,6 +451,79 @@ def liouville_pathway_basis_matrix(
         )
         columns.append((sqrt_weight * states).reshape(-1))
     return np.column_stack(columns)
+
+
+def select_independent_columns(
+    matrix: Array,
+    labels: Sequence[str],
+    *,
+    rtol: float = 1e-10,
+) -> tuple[list[int], list[str], Array]:
+    """Greedily select linearly independent columns from a pathway matrix."""
+
+    if matrix.ndim != 2:
+        raise ValueError("matrix must be two-dimensional")
+    if matrix.shape[1] != len(labels):
+        raise ValueError("Number of labels must match matrix columns")
+
+    selected_indices: list[int] = []
+    selected_labels: list[str] = []
+    residuals = np.zeros(matrix.shape[1], dtype=float)
+    basis = np.empty((matrix.shape[0], 0), dtype=complex)
+
+    for index in range(matrix.shape[1]):
+        column = matrix[:, index]
+        column_norm = np.linalg.norm(column)
+        if column_norm < 1e-15:
+            continue
+        if basis.shape[1] == 0:
+            selected_indices.append(index)
+            selected_labels.append(labels[index])
+            basis = column[:, None]
+            residuals[index] = 1.0
+            continue
+        coefficients, *_ = np.linalg.lstsq(basis, column, rcond=None)
+        residual = column - basis @ coefficients
+        relative_residual = np.linalg.norm(residual) / column_norm
+        residuals[index] = relative_residual
+        if relative_residual > rtol:
+            selected_indices.append(index)
+            selected_labels.append(labels[index])
+            basis = np.column_stack((basis, column))
+
+    return selected_indices, selected_labels, residuals
+
+
+def independent_canonical_pathways(
+    model: LiouvilleModel,
+    parameter_map: ParameterMap,
+    omegas: Array,
+    pathways: Sequence[CanonicalPathway],
+    *,
+    stage: str = "after_U2",
+    tau2: float = 1.0,
+    eta: float = 1e-3,
+    rtol: float = 1e-10,
+) -> tuple[list[CanonicalPathway], Array]:
+    """Return a rank-reduced canonical pathway list at lambda=0."""
+
+    matrix = liouville_pathway_basis_matrix(
+        model,
+        parameter_map,
+        parameter_map.zero(),
+        omegas,
+        pathways,
+        stage=stage,
+        tau2=tau2,
+        eta=eta,
+    )
+    labels = [item.label for item in pathways]
+    indices, _selected_labels, residuals = select_independent_columns(
+        matrix,
+        labels,
+        rtol=rtol,
+    )
+    return [pathways[index] for index in indices], residuals
 
 
 def liouville_transport_matrix(
@@ -554,6 +656,7 @@ __all__ = [
     "field_operator",
     "finite_difference_liouvillian_derivatives",
     "get_sector_pathways",
+    "independent_canonical_pathways",
     "interaction_super",
     "left_super",
     "liouville_pathway_basis_matrix",
@@ -567,6 +670,7 @@ __all__ = [
     "pathway_state_spectrum",
     "phase_sign_for_field",
     "right_super",
+    "select_independent_columns",
     "split_transition_dipole",
     "vec",
 ]

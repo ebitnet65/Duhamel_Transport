@@ -18,7 +18,7 @@ def op(i, j, dim=3):
     return ket(i, dim) @ ket(j, dim).conj().T
 
 
-def dissipator(collapse):
+def lindblad_dissipator(collapse):
     dim = collapse.shape[0]
     ident = np.eye(dim, dtype=complex)
     cdc = collapse.conj().T @ collapse
@@ -27,6 +27,18 @@ def dissipator(collapse):
         - 0.5 * np.kron(ident, cdc)
         - 0.5 * np.kron(cdc.T, ident)
     )
+
+
+def liouvillian_from_hamiltonian_and_lindblad_ops(hamiltonian, lindblad_ops):
+    dim = hamiltonian.shape[0]
+    ident = np.eye(dim, dtype=complex)
+    liouvillian = -1j * (
+        np.kron(ident, hamiltonian)
+        - np.kron(hamiltonian.T, ident)
+    )
+    for collapse in lindblad_ops:
+        liouvillian += lindblad_dissipator(collapse)
+    return liouvillian
 
 
 def detailed_balance_transfer_rates(params):
@@ -62,18 +74,20 @@ def detailed_balance_transfer_rates(params):
     )
 
 
-def v_system_liouvillian(params):
+def v_system_hamiltonian(params):
     dim = 3
-    ident = np.eye(dim, dtype=complex)
-    hamiltonian = (
+    return (
         params["omega_b"] * projector(1, dim)
         + params["omega_d"] * projector(2, dim)
         + params["v_bd"] * (op(1, 2, dim) + op(2, 1, dim))
     )
-    liouvillian = -1j * (
-        np.kron(ident, hamiltonian)
-        - np.kron(hamiltonian.T, ident)
-    )
+
+
+def v_system_lindblad_ops(params):
+    """Return the Hilbert-space collapse operators C_k for the V-system."""
+
+    dim = 3
+    collapse_ops = []
 
     gamma_b = params["gamma_b"]
     gamma_d = params["gamma_d"]
@@ -82,18 +96,25 @@ def v_system_liouvillian(params):
     k_b_to_d, k_d_to_b = detailed_balance_transfer_rates(params)
 
     if gamma_b > 0:
-        liouvillian += dissipator(np.sqrt(gamma_b) * op(0, 1, dim))
+        collapse_ops.append(np.sqrt(gamma_b) * op(0, 1, dim))
     if gamma_d > 0:
-        liouvillian += dissipator(np.sqrt(gamma_d) * op(0, 2, dim))
+        collapse_ops.append(np.sqrt(gamma_d) * op(0, 2, dim))
     if gamma_phi_b > 0:
-        liouvillian += dissipator(np.sqrt(gamma_phi_b) * projector(1, dim))
+        collapse_ops.append(np.sqrt(gamma_phi_b) * projector(1, dim))
     if gamma_phi_d > 0:
-        liouvillian += dissipator(np.sqrt(gamma_phi_d) * projector(2, dim))
+        collapse_ops.append(np.sqrt(gamma_phi_d) * projector(2, dim))
     if k_b_to_d > 0:
-        liouvillian += dissipator(np.sqrt(k_b_to_d) * op(2, 1, dim))
+        collapse_ops.append(np.sqrt(k_b_to_d) * op(2, 1, dim))
     if k_d_to_b > 0:
-        liouvillian += dissipator(np.sqrt(k_d_to_b) * op(1, 2, dim))
-    return liouvillian
+        collapse_ops.append(np.sqrt(k_d_to_b) * op(1, 2, dim))
+    return tuple(collapse_ops)
+
+
+def v_system_liouvillian(params):
+    return liouvillian_from_hamiltonian_and_lindblad_ops(
+        v_system_hamiltonian(params),
+        v_system_lindblad_ops(params),
+    )
 
 
 def v_system_mu_components(params):
@@ -168,15 +189,51 @@ def test_v_system_model_construction_is_operator_first_and_qutip_like():
     )
     mu_plus = params["mu_gb"] * transitions["b_g"] + params["mu_gd"] * transitions["d_g"]
     mu_minus = mu_plus.conj().T
+    k_b_to_d, k_d_to_b = detailed_balance_transfer_rates(params)
+    c_ops = (
+        np.sqrt(params["gamma_b"]) * transitions["g_b"],
+        np.sqrt(params["gamma_d"]) * transitions["g_d"],
+        np.sqrt(params["gamma_phi_b"]) * projectors["b"],
+        np.sqrt(params["gamma_phi_d"]) * projectors["d"],
+        np.sqrt(k_b_to_d) * transitions["d_b"],
+        np.sqrt(k_d_to_b) * transitions["b_d"],
+    )
 
     np.testing.assert_allclose(
         hamiltonian,
-        params["omega_b"] * projector(1, dim)
-        + params["omega_d"] * projector(2, dim)
-        + params["v_bd"] * (op(1, 2, dim) + op(2, 1, dim)),
+        v_system_hamiltonian(params),
     )
     np.testing.assert_allclose(mu_plus, v_system_mu_components(params)[0])
     np.testing.assert_allclose(mu_minus, v_system_mu_components(params)[1])
+    for actual, expected in zip(v_system_lindblad_ops(params), c_ops, strict=True):
+        np.testing.assert_allclose(actual, expected)
+
+
+def test_v_system_liouvillian_matches_density_matrix_lindblad_equation():
+    params = v_system_parameter_map().params([0.03])
+    hamiltonian = v_system_hamiltonian(params)
+    lindblad_ops = v_system_lindblad_ops(params)
+    liouvillian = v_system_liouvillian(params)
+    rho = np.array(
+        [
+            [0.6, 0.02 + 0.01j, 0.03 - 0.02j],
+            [0.02 - 0.01j, 0.25, 0.04 + 0.03j],
+            [0.03 + 0.02j, 0.04 - 0.03j, 0.15],
+        ],
+        dtype=complex,
+    )
+
+    expected = -1j * (hamiltonian @ rho - rho @ hamiltonian)
+    for collapse in lindblad_ops:
+        cdc = collapse.conj().T @ collapse
+        expected += (
+            collapse @ rho @ collapse.conj().T
+            - 0.5 * (cdc @ rho + rho @ cdc)
+        )
+
+    actual = general.mat(liouvillian @ general.vec(rho), dimension=3)
+
+    np.testing.assert_allclose(actual, expected)
 
 
 def test_v_system_liouvillian_is_trace_preserving():

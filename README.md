@@ -133,7 +133,9 @@ making QuTiP a required dependency. The recommended pattern is:
 1. Define Hilbert-space basis states.
 2. Build projectors and transition operators transparently.
 3. Assemble the Hamiltonian from those operators.
-4. Assemble collapse operators and convert them to Lindblad dissipators.
+4. Assemble Lindblad collapse operators `C_k` and convert them to
+   dissipators of the form
+   `C_k rho C_k^dag - 1/2 {C_k^dag C_k, rho}`.
 5. Define the transition dipole `mu`, and when needed explicitly define
    `mu_plus` and `mu_minus`.
 6. Wrap these functions in `LiouvilleModel`.

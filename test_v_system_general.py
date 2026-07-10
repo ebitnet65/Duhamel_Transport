@@ -136,6 +136,49 @@ def v_system_parameter_map(*controls):
     )
 
 
+def test_v_system_model_construction_is_operator_first_and_qutip_like():
+    """Document the intended user-facing construction style.
+
+    A user should be able to define transparent Hilbert-space operators first,
+    then assemble H, collapse operators, and mu from those objects. This mirrors
+    the QuTiP workflow without requiring QuTiP as a dependency.
+    """
+
+    params = v_system_parameter_map().params([0.0])
+    dim = 3
+
+    states = {
+        "g": ket(0, dim),
+        "b": ket(1, dim),
+        "d": ket(2, dim),
+    }
+    projectors = {name: state @ state.conj().T for name, state in states.items()}
+    transitions = {
+        "b_g": states["b"] @ states["g"].conj().T,
+        "d_g": states["d"] @ states["g"].conj().T,
+        "g_b": states["g"] @ states["b"].conj().T,
+        "g_d": states["g"] @ states["d"].conj().T,
+        "b_d": states["b"] @ states["d"].conj().T,
+        "d_b": states["d"] @ states["b"].conj().T,
+    }
+    hamiltonian = (
+        params["omega_b"] * projectors["b"]
+        + params["omega_d"] * projectors["d"]
+        + params["v_bd"] * (transitions["b_d"] + transitions["d_b"])
+    )
+    mu_plus = params["mu_gb"] * transitions["b_g"] + params["mu_gd"] * transitions["d_g"]
+    mu_minus = mu_plus.conj().T
+
+    np.testing.assert_allclose(
+        hamiltonian,
+        params["omega_b"] * projector(1, dim)
+        + params["omega_d"] * projector(2, dim)
+        + params["v_bd"] * (op(1, 2, dim) + op(2, 1, dim)),
+    )
+    np.testing.assert_allclose(mu_plus, v_system_mu_components(params)[0])
+    np.testing.assert_allclose(mu_minus, v_system_mu_components(params)[1])
+
+
 def test_v_system_liouvillian_is_trace_preserving():
     model = v_system_model()
     params = v_system_parameter_map().params([0.05])

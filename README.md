@@ -125,6 +125,56 @@ example with states `|g>`, `|b>`, and `|d>`. The model defines:
 That explicit dipole-component split is important for systems where the ground
 state is not ordered above the excited states in the matrix basis.
 
+### Model Construction Pattern
+
+The general interface is designed to support a QuTiP-like workflow without
+making QuTiP a required dependency. The recommended pattern is:
+
+1. Define Hilbert-space basis states.
+2. Build projectors and transition operators transparently.
+3. Assemble the Hamiltonian from those operators.
+4. Assemble collapse operators and convert them to Lindblad dissipators.
+5. Define the transition dipole `mu`, and when needed explicitly define
+   `mu_plus` and `mu_minus`.
+6. Wrap these functions in `LiouvilleModel`.
+
+The V-system test follows this pattern. In abbreviated form:
+
+```python
+g = ket(0, 3)
+b = ket(1, 3)
+d = ket(2, 3)
+
+Pg = g @ g.conj().T
+Pb = b @ b.conj().T
+Pd = d @ d.conj().T
+
+B_d = b @ d.conj().T
+D_b = d @ b.conj().T
+B_g = b @ g.conj().T
+D_g = d @ g.conj().T
+
+H = omega_b * Pb + omega_d * Pd + v_bd * (B_d + D_b)
+
+mu_plus = mu_gb * B_g + mu_gd * D_g
+mu_minus = mu_plus.conj().T
+mu = mu_plus + mu_minus
+
+c_ops = [
+    sqrt(gamma_b) * (g @ b.conj().T),
+    sqrt(gamma_d) * (g @ d.conj().T),
+    sqrt(gamma_phi_b) * Pb,
+    sqrt(gamma_phi_d) * Pd,
+    sqrt(k_b_to_d) * D_b,
+    sqrt(k_d_to_b) * B_d,
+]
+```
+
+This is intentionally close to how one would write the model in QuTiP with
+`basis`, `Qobj`, and collapse operators. A future QuTiP adapter should convert
+those `Qobj` definitions at the boundary, while the transport core continues to
+operate on its own matrix protocol.
+
 ## Notes
 
 Generated plots and diagnostic output directories are ignored by git. Recreate

@@ -95,7 +95,8 @@ respect to uncertain controls such as `theta` or `(theta, gamma_phi)`.
 The user-facing pieces are:
 
 - `LiouvilleModel`: supplies `L(params)`, `rho0(params)`, and the transition
-  dipole `mu(params)`.
+  dipole `mu(params)`. For QuTiP-style model construction, use
+  `LiouvilleModel.from_hamiltonian(...)` with `H(params)` and `c_ops(params)`.
 - `ParameterMap`: maps a lambda displacement into the full parameter
   dictionary.
 - `ControlSpec`: names each selected control coordinate, its reference value,
@@ -176,6 +177,12 @@ This is intentionally close to how one would write the model in QuTiP with
 `basis`, `Qobj`, and collapse operators. A future QuTiP adapter should convert
 those `Qobj` definitions at the boundary, while the transport core continues to
 operate on its own matrix protocol.
+
+The optional bridge module `Liouville_qutip_adapter.py` provides
+`qutip_model_from_hamiltonian(...)`. It accepts callables that return either
+QuTiP `Qobj` instances or ordinary array-like matrices, converts them at the
+boundary, and returns a `LiouvilleModel`. This keeps QuTiP interoperability
+available without making QuTiP a required dependency.
 
 ## Notes
 

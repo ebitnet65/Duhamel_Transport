@@ -119,6 +119,43 @@ class LiouvilleModel:
     resolvent: Callable[[Array, float, float], Array] | None = None
     propagator: Callable[[Array, float], Array] | None = None
 
+    @classmethod
+    def from_hamiltonian(
+        cls,
+        *,
+        dimension: int,
+        hamiltonian: Callable[[Params], Array],
+        collapse_ops: Callable[[Params], Sequence[Array]],
+        initial_state: Callable[[Params], Array],
+        transition_dipole: Callable[[Params], Array],
+        dipole_components: Callable[[Params], tuple[Array, Array]] | None = None,
+        resolvent: Callable[[Array, float, float], Array] | None = None,
+        propagator: Callable[[Array, float], Array] | None = None,
+    ) -> "LiouvilleModel":
+        """Construct a model from QuTiP-style `H(params)` and `c_ops(params)`.
+
+        The user supplies Hilbert-space Hamiltonian and Lindblad collapse
+        operators. The internal Liouville-space generator is then assembled as
+
+            -i[H, .] + sum_k D[C_k].
+        """
+
+        def liouvillian(params: Params) -> Array:
+            return liouvillian_from_hamiltonian_and_lindblad_ops(
+                hamiltonian(params),
+                collapse_ops(params),
+            )
+
+        return cls(
+            dimension=dimension,
+            liouvillian=liouvillian,
+            initial_state=initial_state,
+            transition_dipole=transition_dipole,
+            dipole_components=dipole_components,
+            resolvent=resolvent,
+            propagator=propagator,
+        )
+
     @property
     def liouville_dimension(self) -> int:
         return self.dimension * self.dimension
@@ -237,6 +274,38 @@ def commutator_super(operator: Array, dimension: int | None = None) -> Array:
     """Superoperator for rho -> [operator, rho]."""
 
     return left_super(operator, dimension) - right_super(operator, dimension)
+
+
+def lindblad_dissipator(collapse: Array) -> Array:
+    """Liouville-space dissipator for one Lindblad collapse operator."""
+
+    c = np.asarray(collapse, dtype=complex)
+    dim = c.shape[0]
+    ident = np.eye(dim, dtype=complex)
+    cdc = c.conj().T @ c
+    return (
+        np.kron(c.conj(), c)
+        - 0.5 * np.kron(ident, cdc)
+        - 0.5 * np.kron(cdc.T, ident)
+    )
+
+
+def liouvillian_from_hamiltonian_and_lindblad_ops(
+    hamiltonian: Array,
+    collapse_ops: Sequence[Array],
+) -> Array:
+    """Build a column-stacked Liouvillian from H and Lindblad operators."""
+
+    h = np.asarray(hamiltonian, dtype=complex)
+    dim = h.shape[0]
+    ident = np.eye(dim, dtype=complex)
+    liouvillian = -1j * (
+        np.kron(ident, h)
+        - np.kron(h.T, ident)
+    )
+    for collapse in collapse_ops:
+        liouvillian += lindblad_dissipator(collapse)
+    return liouvillian
 
 
 def split_transition_dipole(mu: Array) -> tuple[Array, Array]:
@@ -696,8 +765,10 @@ __all__ = [
     "get_sector_pathways",
     "independent_canonical_pathways",
     "interaction_super",
+    "lindblad_dissipator",
     "left_super",
     "liouville_pathway_basis_matrix",
+    "liouvillian_from_hamiltonian_and_lindblad_ops",
     "liouville_transport_matrix",
     "make_pathway",
     "mat",

@@ -1,6 +1,7 @@
 import numpy as np
 
 import Liouville_transport_general as general
+from Liouville_qutip_adapter import qutip_model_from_hamiltonian
 
 
 def ket(index, dim=3):
@@ -18,27 +19,11 @@ def op(i, j, dim=3):
     return ket(i, dim) @ ket(j, dim).conj().T
 
 
-def lindblad_dissipator(collapse):
-    dim = collapse.shape[0]
-    ident = np.eye(dim, dtype=complex)
-    cdc = collapse.conj().T @ collapse
-    return (
-        np.kron(collapse.conj(), collapse)
-        - 0.5 * np.kron(ident, cdc)
-        - 0.5 * np.kron(cdc.T, ident)
-    )
-
-
 def liouvillian_from_hamiltonian_and_lindblad_ops(hamiltonian, lindblad_ops):
-    dim = hamiltonian.shape[0]
-    ident = np.eye(dim, dtype=complex)
-    liouvillian = -1j * (
-        np.kron(ident, hamiltonian)
-        - np.kron(hamiltonian.T, ident)
+    return general.liouvillian_from_hamiltonian_and_lindblad_ops(
+        hamiltonian,
+        lindblad_ops,
     )
-    for collapse in lindblad_ops:
-        liouvillian += lindblad_dissipator(collapse)
-    return liouvillian
 
 
 def detailed_balance_transfer_rates(params):
@@ -127,9 +112,10 @@ def v_system_mu_components(params):
 
 
 def v_system_model():
-    return general.LiouvilleModel(
+    return general.LiouvilleModel.from_hamiltonian(
         dimension=3,
-        liouvillian=v_system_liouvillian,
+        hamiltonian=v_system_hamiltonian,
+        collapse_ops=v_system_lindblad_ops,
         initial_state=lambda _params: general.vec(projector(0, 3)),
         transition_dipole=lambda params: sum(v_system_mu_components(params)),
         dipole_components=v_system_mu_components,
@@ -234,6 +220,29 @@ def test_v_system_liouvillian_matches_density_matrix_lindblad_equation():
     actual = general.mat(liouvillian @ general.vec(rho), dimension=3)
 
     np.testing.assert_allclose(actual, expected)
+
+
+def test_qutip_style_adapter_matches_core_v_system_model_without_qutip_dependency():
+    params = v_system_parameter_map().params([0.02])
+    adapter_model = qutip_model_from_hamiltonian(
+        dimension=3,
+        hamiltonian=v_system_hamiltonian,
+        collapse_ops=v_system_lindblad_ops,
+        initial_state=lambda _params: projector(0, 3),
+        transition_dipole=lambda p: sum(v_system_mu_components(p)),
+        dipole_components=v_system_mu_components,
+    )
+    core_model = v_system_model()
+
+    np.testing.assert_allclose(adapter_model.L(params), core_model.L(params))
+    np.testing.assert_allclose(adapter_model.rho0(params), core_model.rho0(params))
+    np.testing.assert_allclose(adapter_model.mu(params), core_model.mu(params))
+    for actual, expected in zip(
+        adapter_model.mu_components(params),
+        core_model.mu_components(params),
+        strict=True,
+    ):
+        np.testing.assert_allclose(actual, expected)
 
 
 def test_v_system_liouvillian_is_trace_preserving():

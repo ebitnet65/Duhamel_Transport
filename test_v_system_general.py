@@ -29,6 +29,23 @@ def dissipator(collapse):
     )
 
 
+def detailed_balance_transfer_rates(params):
+    """Return incoherent transfer rates for b -> d and d -> b.
+
+    The symmetric prefactor convention enforces
+
+        k_{b->d} / k_{d->b} = exp[-beta (omega_d - omega_b)].
+    """
+
+    delta = params["omega_d"] - params["omega_b"]
+    beta = params["beta_bd"]
+    rate = params["k_bd"]
+    return (
+        rate * np.exp(-0.5 * beta * delta),
+        rate * np.exp(+0.5 * beta * delta),
+    )
+
+
 def v_system_liouvillian(params):
     dim = 3
     ident = np.eye(dim, dtype=complex)
@@ -44,17 +61,22 @@ def v_system_liouvillian(params):
 
     gamma_b = params["gamma_b"]
     gamma_d = params["gamma_d"]
-    gamma_bd_phi = params["gamma_bd_phi"]
+    gamma_phi_b = params["gamma_phi_b"]
+    gamma_phi_d = params["gamma_phi_d"]
+    k_b_to_d, k_d_to_b = detailed_balance_transfer_rates(params)
 
     if gamma_b > 0:
         liouvillian += dissipator(np.sqrt(gamma_b) * op(0, 1, dim))
     if gamma_d > 0:
         liouvillian += dissipator(np.sqrt(gamma_d) * op(0, 2, dim))
-    if gamma_bd_phi > 0:
-        liouvillian += dissipator(
-            np.sqrt(gamma_bd_phi)
-            * (projector(1, dim) - projector(2, dim))
-        )
+    if gamma_phi_b > 0:
+        liouvillian += dissipator(np.sqrt(gamma_phi_b) * projector(1, dim))
+    if gamma_phi_d > 0:
+        liouvillian += dissipator(np.sqrt(gamma_phi_d) * projector(2, dim))
+    if k_b_to_d > 0:
+        liouvillian += dissipator(np.sqrt(k_b_to_d) * op(2, 1, dim))
+    if k_d_to_b > 0:
+        liouvillian += dissipator(np.sqrt(k_d_to_b) * op(1, 2, dim))
     return liouvillian
 
 
@@ -87,7 +109,10 @@ def v_system_parameter_map(*controls):
             "v_bd": 0.0,
             "gamma_b": 0.03,
             "gamma_d": 0.004,
-            "gamma_bd_phi": 0.02,
+            "gamma_phi_b": 0.02,
+            "gamma_phi_d": 0.012,
+            "k_bd": 0.006,
+            "beta_bd": 2.5,
             "mu_gb": 1.0,
             "mu_gd": 0.08,
         },
@@ -102,6 +127,37 @@ def test_v_system_liouvillian_is_trace_preserving():
     trace_row = general.vec(np.eye(3)).conj()
 
     np.testing.assert_allclose(trace_row @ liouvillian, np.zeros(9), atol=1e-12)
+
+
+def test_v_system_bright_dark_transfer_rates_obey_detailed_balance():
+    params = v_system_parameter_map().params([0.0])
+    k_b_to_d, k_d_to_b = detailed_balance_transfer_rates(params)
+    delta = params["omega_d"] - params["omega_b"]
+
+    np.testing.assert_allclose(
+        k_b_to_d / k_d_to_b,
+        np.exp(-params["beta_bd"] * delta),
+    )
+    assert k_d_to_b > k_b_to_d
+
+
+def test_v_system_dephases_bright_and_dark_states_independently():
+    params = v_system_parameter_map().params([0.0])
+    base = dict(params)
+    no_dephasing = dict(params)
+    no_dephasing["gamma_phi_b"] = 0.0
+    no_dephasing["gamma_phi_d"] = 0.0
+
+    L_with = v_system_liouvillian(base)
+    L_without = v_system_liouvillian(no_dephasing)
+    dephasing_piece = L_with - L_without
+
+    assert np.linalg.norm(dephasing_piece) > 0.0
+    np.testing.assert_allclose(
+        general.vec(np.eye(3)).conj() @ dephasing_piece,
+        np.zeros(9),
+        atol=1e-12,
+    )
 
 
 def test_v_system_dipole_components_are_explicit_and_not_triangular_order_dependent():

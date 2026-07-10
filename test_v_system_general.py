@@ -35,11 +35,27 @@ def detailed_balance_transfer_rates(params):
     The symmetric prefactor convention enforces
 
         k_{b->d} / k_{d->b} = exp[-beta (omega_d - omega_b)].
+
+    Users may specify either inverse temperature `beta_bd` directly or a
+    positive temperature `temperature` with k_B = 1.
     """
 
     delta = params["omega_d"] - params["omega_b"]
-    beta = params["beta_bd"]
+    if "beta_bd" in params:
+        beta = params["beta_bd"]
+    else:
+        temperature = params["temperature"]
+        if temperature <= 0:
+            beta = np.inf
+        else:
+            beta = 1.0 / temperature
     rate = params["k_bd"]
+    if np.isinf(beta):
+        if delta > 0:
+            return 0.0, rate
+        if delta < 0:
+            return rate, 0.0
+        return rate, rate
     return (
         rate * np.exp(-0.5 * beta * delta),
         rate * np.exp(+0.5 * beta * delta),
@@ -112,7 +128,7 @@ def v_system_parameter_map(*controls):
             "gamma_phi_b": 0.02,
             "gamma_phi_d": 0.012,
             "k_bd": 0.006,
-            "beta_bd": 2.5,
+            "temperature": 0.4,
             "mu_gb": 1.0,
             "mu_gd": 0.08,
         },
@@ -136,9 +152,33 @@ def test_v_system_bright_dark_transfer_rates_obey_detailed_balance():
 
     np.testing.assert_allclose(
         k_b_to_d / k_d_to_b,
-        np.exp(-params["beta_bd"] * delta),
+        np.exp(-delta / params["temperature"]),
     )
     assert k_d_to_b > k_b_to_d
+
+
+def test_v_system_transfer_rates_allow_explicit_inverse_temperature():
+    params = v_system_parameter_map().params([0.0])
+    params_with_beta = dict(params)
+    params_with_beta.pop("temperature")
+    params_with_beta["beta_bd"] = 2.5
+    k_b_to_d, k_d_to_b = detailed_balance_transfer_rates(params_with_beta)
+    delta = params["omega_d"] - params["omega_b"]
+
+    np.testing.assert_allclose(
+        k_b_to_d / k_d_to_b,
+        np.exp(-params_with_beta["beta_bd"] * delta),
+    )
+
+
+def test_v_system_zero_temperature_transfer_goes_downhill_only():
+    params = v_system_parameter_map().params([0.0])
+    params_zero_t = dict(params)
+    params_zero_t["temperature"] = 0.0
+    k_b_to_d, k_d_to_b = detailed_balance_transfer_rates(params_zero_t)
+
+    assert k_b_to_d == 0.0
+    assert k_d_to_b == params["k_bd"]
 
 
 def test_v_system_dephases_bright_and_dark_states_independently():

@@ -112,7 +112,8 @@ example with states `|g>`, `|b>`, and `|d>`. The model defines:
 - radiative decay from `|b>` and `|d>` to `|g>`;
 - independent pure dephasing on `|b>` and `|d>`;
 - incoherent `|b> <-> |d>` transfer through Lindblad operators `|d><b|`
-  and `|b><d|`, with rates constrained by detailed balance;
+  and `|b><d|`, with rates constrained by detailed balance using either
+  `temperature` or an explicit inverse temperature `beta_bd`;
 - an explicit transition dipole split into `mu_plus` and `mu_minus`.
 
 That explicit dipole-component split is important for systems where the ground

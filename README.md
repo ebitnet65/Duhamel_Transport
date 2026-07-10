@@ -18,6 +18,9 @@ pathway components deform under the rotated dephasing Liouvillian.
 - `phase_matched_response.py`: phase-matched RP/NRP two-level response model.
 - `Liouville_transport.py`: pathway-state construction, basis projection, and
   transport-matrix diagnostics.
+- `Liouville_transport_general.py`: model-agnostic transport core where users
+  supply a Liouvillian, initial state, transition dipole operator, and selected
+  control variables.
 - `run_liouville_transport.py`: command-line driver for transport sweeps and
   plots.
 - `Compute_responses.py`: response computation helper.
@@ -79,6 +82,28 @@ Key quantities:
 - `condition number`: large values indicate a nearly dependent pathway basis.
 - `projection residuals`: quantify how much of each finite-lambda pathway lies
   outside the canonical lambda-zero pathway subspace.
+
+## General Transport Core
+
+`Liouville_transport_general.py` separates full model parameters from the
+selected lambda-vector controls. For example, a model may require `w0`,
+`gamma_phi`, `gamma1`, and `theta`, while the expansion is performed only with
+respect to `theta` or only with respect to `(theta, gamma_phi)`.
+
+The user-facing pieces are:
+
+- `LiouvilleModel`: supplies `L(params)`, `rho0(params)`, and the transition
+  dipole `mu(params)`.
+- `ParameterMap`: maps a lambda vector into the full parameter dictionary.
+- `ControlSpec`: names each selected control coordinate and its scale.
+- `canonical_pathways`: builds nested-commutator RWA pathways.
+- `liouville_transport_matrix`: computes `T(lambda)` by projecting finite
+  pathway states onto the lambda-zero pathway basis.
+
+The current derivative helper,
+`finite_difference_liouvillian_derivatives`, fixes the indexing convention for
+first and second derivatives with respect to selected controls. It is intended
+as the reference backend before adding autodiff.
 
 ## Notes
 

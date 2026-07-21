@@ -28,6 +28,8 @@ pathway components deform under the rotated dephasing Liouvillian.
   with the transported-signal expansion.
 - `diagnose_v_system_spectra.py`: V-system spectral sanity check comparing no
   bright-dark mixing, coherent mixing, and coherent plus incoherent transfer.
+- `diagnose_exciton_dimer_spectra.py`: site-basis exciton dimer check with
+  `mu = mu_site (|10><00| + |01><00| + h.c.)`, comparing both signs of `J`.
 - `run_liouville_transport.py`: command-line driver for transport sweeps and
   plots.
 - `Compute_responses.py`: response computation helper.
@@ -124,6 +126,34 @@ relative to the no-mixing case. It also reports window amplitudes around the
 nominal `BB`, `BD`, `DB`, and `DD` coordinates. With `mu_gd = 0`, the coherent
 dark-state contribution appears first in the mixing-induced satellite contrast
 rather than as a direct dark transition.
+
+## Exciton Dimer Spectral Check
+
+For a site-basis exciton dimer, use
+
+```text
+|0> = |00>,  |1> = |10>,  |2> = |01>
+mu = mu_site (|10><00| + |01><00| + h.c.)
+```
+
+Run:
+
+```bash
+python diagnose_exciton_dimer_spectra.py
+```
+
+The diagnostic compares `J = 0`, `J > 0`, `J < 0`, and each sign with
+incoherent transfer. With the current Hamiltonian convention
+
+```text
+H_site = omega_1 |10><10| + omega_2 |01><01|
+       + J_bd (|10><01| + |01><10|)
+```
+
+positive `J_bd` brightens the upper exciton in the equal-site, parallel-dipole
+limit. If the desired convention is that positive `J` lowers the bright
+symmetric exciton, the Hamiltonian coupling should be written with the opposite
+sign, `-J`.
 
 ## Diagnostics
 

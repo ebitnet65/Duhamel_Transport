@@ -15,6 +15,7 @@ stage_diagnostics/
 transport_output/
 transport_fit_output*/
 v_system_spectra_diagnostics*/
+exciton_dimer_spectra_diagnostics*/
 figures/
 
 # Local environments

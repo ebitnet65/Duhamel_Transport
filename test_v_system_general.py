@@ -333,6 +333,38 @@ def test_v_system_default_dipole_couples_ground_to_bright_only():
     np.testing.assert_allclose(params["mu_gd"], 0.0)
 
 
+def test_site_basis_dimer_dipole_couples_ground_to_both_site_excitations():
+    model = v_system_model()
+    pmap = v_system_parameter_map(
+        general.ControlSpec("mu_gd", reference_value=1.0, scale=0.0),
+    )
+    params = pmap.params([0.0])
+    params["mu_gb"] = 1.0
+    mu = model.mu(params)
+
+    np.testing.assert_allclose(mu[1, 0], 1.0)
+    np.testing.assert_allclose(mu[2, 0], 1.0)
+    np.testing.assert_allclose(mu[0, 1], 1.0)
+    np.testing.assert_allclose(mu[0, 2], 1.0)
+
+
+def test_positive_J_bd_brightens_upper_exciton_in_current_hamiltonian_convention():
+    params = v_system_parameter_map().params([0.0])
+    params["omega_b"] = 1.0
+    params["omega_d"] = 1.0
+    params["J_bd"] = 0.05
+    params["mu_gb"] = 1.0
+    params["mu_gd"] = 1.0
+
+    h_one = v_system_hamiltonian(params)[1:3, 1:3]
+    energies, vectors = np.linalg.eigh(h_one)
+    site_dipole = np.array([params["mu_gb"], params["mu_gd"]], dtype=complex)
+    oscillator_strengths = np.abs(site_dipole.conj() @ vectors) ** 2
+
+    np.testing.assert_allclose(energies, [0.95, 1.05])
+    assert oscillator_strengths[1] > oscillator_strengths[0]
+
+
 def test_v_system_general_transport_has_identity_at_zero_control():
     model = v_system_model()
     pmap = v_system_parameter_map()

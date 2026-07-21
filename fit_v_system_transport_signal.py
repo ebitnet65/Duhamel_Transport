@@ -114,6 +114,35 @@ def pathway_state_grid_matrix(
     return np.column_stack(columns)
 
 
+def commutator_signal_grid(
+    model: general.LiouvilleModel,
+    parameter_map: general.ParameterMap,
+    lam: np.ndarray,
+    omega1_values: np.ndarray,
+    omega3_values: np.ndarray,
+    *,
+    tau2: float,
+    eta: float,
+) -> np.ndarray:
+    """Return the direct full-commutator 2D third-order response."""
+
+    params = parameter_map.params(lam)
+    L = model.L(params)
+    rho0 = model.rho0(params)
+    mu = model.mu(params)
+    J = general.commutator_super(mu)
+    U2 = model.U(L, tau2)
+
+    signal = np.empty((len(omega3_values), len(omega1_values)), dtype=complex)
+    for i3, omega3 in enumerate(omega3_values):
+        G3 = model.G(L, omega3, eta)
+        for i1, omega1 in enumerate(omega1_values):
+            G1 = model.G(L, omega1, eta)
+            state = G3 @ J @ U2 @ J @ G1 @ J @ rho0
+            signal[i3, i1] = trace_signal(model, params, state)
+    return signal.reshape(-1)
+
+
 def project_transport_derivative(
     P0: np.ndarray,
     derivative: np.ndarray,
@@ -269,10 +298,34 @@ def plot_signal_panel(
     signal: np.ndarray,
     title: str,
     output_file: Path,
+    *,
+    component: str = "real",
 ) -> None:
+    if component == "real":
+        values = np.real(signal)
+        label = r"$\mathrm{Re}\,S$"
+        cmap = "RdBu_r"
+    elif component == "imag":
+        values = np.imag(signal)
+        label = r"$\mathrm{Im}\,S$"
+        cmap = "RdBu_r"
+    elif component == "abs":
+        values = np.abs(signal)
+        label = r"$|S|$"
+        cmap = "magma"
+    else:
+        raise ValueError("component must be 'real', 'imag', or 'abs'")
+
     fig, ax = plt.subplots(figsize=(5.5, 4.8))
+    image_values = values.reshape(len(omega3_values), len(omega1_values))
+    if component in ("real", "imag"):
+        vmax = float(np.max(np.abs(image_values)))
+        vmin = -vmax
+    else:
+        vmin = 0.0
+        vmax = float(np.max(image_values))
     image = ax.imshow(
-        np.real(signal.reshape(len(omega3_values), len(omega1_values))),
+        image_values,
         origin="lower",
         extent=(
             float(omega1_values[0]),
@@ -281,12 +334,14 @@ def plot_signal_panel(
             float(omega3_values[-1]),
         ),
         aspect="auto",
-        cmap="RdBu_r",
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
     )
     ax.set_xlabel(r"$\omega_1$")
     ax.set_ylabel(r"$\omega_3$")
     ax.set_title(title)
-    fig.colorbar(image, ax=ax, label=r"$\mathrm{Re}\,S$")
+    fig.colorbar(image, ax=ax, label=label)
     fig.tight_layout()
     fig.savefig(output_file, dpi=250, bbox_inches="tight")
     plt.close(fig)
@@ -306,6 +361,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--target-radius", type=float, default=0.35)
     parser.add_argument("--fit-bound", type=float, default=0.8)
     parser.add_argument("--order", type=int, choices=(1, 2), default=2)
+    parser.add_argument(
+        "--sectors",
+        nargs="+",
+        default=("RP", "NRP"),
+        choices=("RP", "NRP", "DQC"),
+        help="Phase-matched sectors included in the fitted signal.",
+    )
     parser.add_argument("--output-dir", type=Path, default=Path("transport_fit_output"))
     return parser.parse_args()
 
@@ -322,7 +384,8 @@ def main() -> None:
     omega1_values = np.linspace(args.omega_min, args.omega_max, args.n_omega)
     omega3_values = np.linspace(args.omega_min, args.omega_max, args.n_omega)
 
-    candidates = general.canonical_pathways(("RP",))
+    sectors = tuple(sector.upper() for sector in args.sectors)
+    candidates = general.canonical_pathways(sectors)
     pathways, _ = general.independent_canonical_pathways(
         model,
         parameter_map,
@@ -358,6 +421,24 @@ def main() -> None:
     )
     reference_signal = np.sum(reference_pathway_signals, axis=1)
     target_signal = np.sum(target_pathway_signals, axis=1)
+    reference_commutator_signal = commutator_signal_grid(
+        model,
+        parameter_map,
+        parameter_map.zero(),
+        omega1_values,
+        omega3_values,
+        tau2=args.tau2,
+        eta=args.eta,
+    )
+    target_commutator_signal = commutator_signal_grid(
+        model,
+        parameter_map,
+        target_lam,
+        omega1_values,
+        omega3_values,
+        tau2=args.tau2,
+        eta=args.eta,
+    )
 
     expansion = finite_difference_transport_expansion_2d(
         model,
@@ -401,34 +482,55 @@ def main() -> None:
         order=args.order,
     )
 
-    plot_signal_panel(
-        omega1_values,
-        omega3_values,
-        reference_signal,
-        "Reference signal",
-        args.output_dir / "reference_signal_real.png",
-    )
-    plot_signal_panel(
-        omega1_values,
-        omega3_values,
-        target_signal,
-        "Exact target signal",
-        args.output_dir / "target_signal_real.png",
-    )
-    plot_signal_panel(
-        omega1_values,
-        omega3_values,
-        fitted_signal,
-        "Best transported fit",
-        args.output_dir / "fit_signal_real.png",
-    )
-    plot_signal_panel(
-        omega1_values,
-        omega3_values,
-        fitted_signal - target_signal,
-        "Fit residual",
-        args.output_dir / "fit_residual_real.png",
-    )
+    for component in ("real", "imag", "abs"):
+        plot_signal_panel(
+            omega1_values,
+            omega3_values,
+            reference_commutator_signal,
+            "Reference full-commutator signal",
+            args.output_dir / f"reference_signal_{component}.png",
+            component=component,
+        )
+        plot_signal_panel(
+            omega1_values,
+            omega3_values,
+            target_commutator_signal,
+            "Exact target full-commutator signal",
+            args.output_dir / f"target_signal_{component}.png",
+            component=component,
+        )
+        plot_signal_panel(
+            omega1_values,
+            omega3_values,
+            reference_signal,
+            f"Reference pathway-sum signal ({'+'.join(sectors)})",
+            args.output_dir / f"reference_pathway_sum_signal_{component}.png",
+            component=component,
+        )
+        plot_signal_panel(
+            omega1_values,
+            omega3_values,
+            target_signal,
+            f"Exact target pathway-sum signal ({'+'.join(sectors)})",
+            args.output_dir / f"target_pathway_sum_signal_{component}.png",
+            component=component,
+        )
+        plot_signal_panel(
+            omega1_values,
+            omega3_values,
+            fitted_signal,
+            f"Best transported pathway fit ({'+'.join(sectors)})",
+            args.output_dir / f"fit_pathway_sum_signal_{component}.png",
+            component=component,
+        )
+        plot_signal_panel(
+            omega1_values,
+            omega3_values,
+            fitted_signal - target_signal,
+            f"Transported pathway-fit residual ({'+'.join(sectors)})",
+            args.output_dir / f"fit_pathway_sum_residual_{component}.png",
+            component=component,
+        )
 
     np.savez_compressed(
         args.output_dir / "fit_v_system_transport_signal.npz",
@@ -438,9 +540,12 @@ def main() -> None:
         fit_lam=fit_lam,
         reference_signal=reference_signal,
         target_signal=target_signal,
+        reference_commutator_signal=reference_commutator_signal,
+        target_commutator_signal=target_commutator_signal,
         fitted_signal=fitted_signal,
         target_transport_signal=target_transport_signal,
         labels=np.asarray(expansion.labels, dtype=str),
+        sectors=np.asarray(sectors, dtype=str),
         T0=expansion.T0,
         T_first=np.asarray([expansion.first[index] for index in sorted(expansion.first)]),
         T_second_keys=np.asarray(list(expansion.second), dtype=int),
@@ -451,6 +556,7 @@ def main() -> None:
     with summary_file.open("w", encoding="utf-8") as handle:
         handle.write("V-system transported-signal fit\n")
         handle.write("=" * 72 + "\n\n")
+        handle.write(f"sectors: {list(sectors)}\n")
         handle.write(f"controls: {[control.name for control in parameter_map.controls]}\n")
         handle.write(f"target lambda: {np.array2string(target_lam, precision=8)}\n")
         handle.write(f"fit lambda   : {np.array2string(fit_lam, precision=8)}\n")

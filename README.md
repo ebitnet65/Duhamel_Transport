@@ -92,9 +92,11 @@ The output directory contains:
 - `fit_summary.txt`: target lambda, fitted lambda, lambda error, and relative
   signal errors.
 - `fit_v_system_transport_signal.npz`: numerical arrays for later analysis.
-- `reference_signal_real.png`, `target_signal_real.png`,
-  `fit_signal_real.png`, and `fit_residual_real.png`: real-part 2D signal
-  panels.
+- `reference_signal_*.png` and `target_signal_*.png`: direct full-commutator
+  2D response panels. These are the spectra to inspect visually.
+- `reference_pathway_sum_signal_*.png`, `fit_pathway_sum_signal_*.png`, and
+  `fit_pathway_sum_residual_*.png`: the current pathway-transport proof of
+  concept used for the lambda fit.
 
 This script uses finite-difference pathway derivatives. It is meant to preserve
 the analysis workflow while the next revision replaces that derivative backend

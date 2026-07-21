@@ -6,11 +6,11 @@ Site-basis exciton dimer sanity check.
 
 The one-exciton basis is
 
-    |0> = |00>,  |1> = |10>,  |2> = |01>.
+    |0> = |00>,  |1> = |10>,  |2> = |01>,  |3> = |11>.
 
 The transition dipole couples the ground state to both site excitations,
 
-    mu = mu_site (|10><00| + |01><00| + h.c.).
+    mu = mu_site (|10><00| + |01><00| + |11><10| + |11><01| + h.c.).
 
 This differs from `diagnose_v_system_spectra.py`, which treats state 2 as a
 nominally dark state with no direct transition dipole.
@@ -27,40 +27,30 @@ import numpy as np
 import Liouville_transport_general as general
 from diagnose_v_system_spectra import plot_case_grid, plot_difference_grid, window_peak
 from fit_v_system_transport_signal import commutator_signal_grid
-from test_v_system_general import v_system_hamiltonian, v_system_model, v_system_parameter_map
+from exciton_dimer_model import (
+    excited_state_absorption_frequencies,
+    exciton_dimer_model,
+    exciton_dimer_parameter_map,
+    one_exciton_summary,
+)
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-duhamel-transport")
 
 
-def parameter_map_for_dimer_case(*, J_bd: float, k_bd: float, mu_site: float) -> general.ParameterMap:
-    base = dict(v_system_parameter_map().reference_params)
-    base["J_bd"] = J_bd
-    base["k_bd"] = k_bd
-    base["mu_gb"] = mu_site
-    base["mu_gd"] = mu_site
+def parameter_map_for_dimer_case(
+    *,
+    J_12: float,
+    k_12: float,
+    mu_site: float,
+    mu_esa_scale: float,
+) -> general.ParameterMap:
+    base = dict(exciton_dimer_parameter_map().reference_params)
+    base["J_12"] = J_12
+    base["k_12"] = k_12
+    base["mu_1"] = mu_site
+    base["mu_2"] = mu_site
+    base["mu_esa_scale"] = mu_esa_scale
     return general.ParameterMap(reference_params=base, controls=())
-
-
-def exciton_summary(params: general.Params) -> list[dict[str, float]]:
-    """Return one-exciton energies and oscillator strengths for site dipoles."""
-
-    hamiltonian = v_system_hamiltonian(params)
-    one_exciton_hamiltonian = hamiltonian[1:3, 1:3]
-    energies, vectors = np.linalg.eigh(one_exciton_hamiltonian)
-    site_dipole = np.array([params["mu_gb"], params["mu_gd"]], dtype=complex)
-    out = []
-    for index, energy in enumerate(energies):
-        vector = np.real_if_close(vectors[:, index])
-        amplitude = np.vdot(site_dipole, vector)
-        out.append(
-            {
-                "energy": float(energy),
-                "site10_coeff": float(vector[0]),
-                "site01_coeff": float(vector[1]),
-                "oscillator_strength": float(abs(amplitude) ** 2),
-            }
-        )
-    return out
 
 
 def peak_summary_for_signal(
@@ -120,9 +110,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--omega-max", type=float, default=1.38)
     parser.add_argument("--tau2", type=float, default=1.0)
     parser.add_argument("--eta", type=float, default=2e-3)
-    parser.add_argument("--J-bd", type=float, default=0.045)
-    parser.add_argument("--k-bd", type=float, default=0.018)
+    parser.add_argument("--J-12", type=float, default=0.045)
+    parser.add_argument("--k-12", type=float, default=0.018)
     parser.add_argument("--mu-site", type=float, default=1.0)
+    parser.add_argument("--esa-scale", type=float, default=1.0)
     parser.add_argument("--peak-half-width", type=float, default=0.035)
     parser.add_argument("--output-dir", type=Path, default=Path("exciton_dimer_spectra_diagnostics"))
     return parser.parse_args()
@@ -132,34 +123,51 @@ def main() -> None:
     args = parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    model = v_system_model()
+    model = exciton_dimer_model()
     omega1_values = np.linspace(args.omega_min, args.omega_max, args.n_omega)
     omega3_values = np.linspace(args.omega_min, args.omega_max, args.n_omega)
     cases = {
         "J=0": parameter_map_for_dimer_case(
-            J_bd=0.0,
-            k_bd=0.0,
+            J_12=0.0,
+            k_12=0.0,
             mu_site=args.mu_site,
+            mu_esa_scale=0.0,
         ),
-        f"J=+{args.J_bd:g}": parameter_map_for_dimer_case(
-            J_bd=abs(args.J_bd),
-            k_bd=0.0,
+        f"J=+{args.J_12:g}, ESA off": parameter_map_for_dimer_case(
+            J_12=abs(args.J_12),
+            k_12=0.0,
             mu_site=args.mu_site,
+            mu_esa_scale=0.0,
         ),
-        f"J=-{args.J_bd:g}": parameter_map_for_dimer_case(
-            J_bd=-abs(args.J_bd),
-            k_bd=0.0,
+        f"J=+{args.J_12:g}, ESA on": parameter_map_for_dimer_case(
+            J_12=abs(args.J_12),
+            k_12=0.0,
             mu_site=args.mu_site,
+            mu_esa_scale=args.esa_scale,
         ),
-        f"J=+{args.J_bd:g}, k={args.k_bd:g}": parameter_map_for_dimer_case(
-            J_bd=abs(args.J_bd),
-            k_bd=args.k_bd,
+        f"J=-{args.J_12:g}, ESA off": parameter_map_for_dimer_case(
+            J_12=-abs(args.J_12),
+            k_12=0.0,
             mu_site=args.mu_site,
+            mu_esa_scale=0.0,
         ),
-        f"J=-{args.J_bd:g}, k={args.k_bd:g}": parameter_map_for_dimer_case(
-            J_bd=-abs(args.J_bd),
-            k_bd=args.k_bd,
+        f"J=-{args.J_12:g}, ESA on": parameter_map_for_dimer_case(
+            J_12=-abs(args.J_12),
+            k_12=0.0,
             mu_site=args.mu_site,
+            mu_esa_scale=args.esa_scale,
+        ),
+        f"J=+{args.J_12:g}, ESA on, k={args.k_12:g}": parameter_map_for_dimer_case(
+            J_12=abs(args.J_12),
+            k_12=args.k_12,
+            mu_site=args.mu_site,
+            mu_esa_scale=args.esa_scale,
+        ),
+        f"J=-{args.J_12:g}, ESA on, k={args.k_12:g}": parameter_map_for_dimer_case(
+            J_12=-abs(args.J_12),
+            k_12=args.k_12,
+            mu_site=args.mu_site,
+            mu_esa_scale=args.esa_scale,
         ),
     }
 
@@ -168,7 +176,7 @@ def main() -> None:
     exciton_summaries = {}
     for name, pmap in cases.items():
         params = pmap.params()
-        excitons = exciton_summary(params)
+        excitons = one_exciton_summary(params)
         exciton_summaries[name] = excitons
         centers = (excitons[0]["energy"], excitons[1]["energy"])
         flat_signal = commutator_signal_grid(
@@ -225,15 +233,23 @@ def main() -> None:
     with summary_file.open("w", encoding="utf-8") as handle:
         handle.write("Exciton dimer spectra diagnostics\n")
         handle.write("=" * 72 + "\n\n")
-        handle.write("Dipole convention: mu_gb = mu_gd = mu_site\n")
-        handle.write("Hamiltonian convention: +J_bd (|10><01| + |01><10|)\n")
+        handle.write("Basis: |00>, |10>, |01>, |11>\n")
+        handle.write("Dipole convention: mu_1 = mu_2 = mu_site\n")
+        handle.write("ESA convention: mu_esa_scale multiplies |11><10| and |11><01| transitions\n")
+        handle.write("Hamiltonian convention: +J_12 (|10><01| + |01><10|)\n")
         handle.write(
             "For equal site energies and parallel site dipoles, this convention "
             "makes positive J brighten the upper symmetric exciton.\n\n"
         )
         for name in cases:
+            params = cases[name].params()
+            esa_frequencies = excited_state_absorption_frequencies(params)
             handle.write(f"{name}\n")
             handle.write("-" * 72 + "\n")
+            handle.write(
+                "ESA frequencies from lower/upper one-exciton states: "
+                f"{esa_frequencies[0]:.12e}, {esa_frequencies[1]:.12e}\n"
+            )
             for index, exciton in enumerate(exciton_summaries[name]):
                 handle.write(
                     f"exciton {index}: energy={exciton['energy']:.12e} "

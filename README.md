@@ -23,6 +23,8 @@ pathway components deform under the rotated dephasing Liouvillian.
   control variables.
 - `Liouville_transport_expansion.py`: derivative expansion of the pathway
   transport matrix `T(lambda)` around the reference model.
+- `exciton_dimer_model.py`: four-level site-basis exciton dimer model with
+  `|00>`, `|10>`, `|01>`, and `|11>` states, including optional ESA dipoles.
 - `fit_v_system_transport_signal.py`: proof-of-concept inverse fit that
   generates a 2D V-system target signal and recovers the control displacement
   with the transported-signal expansion.
@@ -129,11 +131,15 @@ rather than as a direct dark transition.
 
 ## Exciton Dimer Spectral Check
 
-For a site-basis exciton dimer, use
+For a site-basis exciton dimer, use the four-level model in
+`exciton_dimer_model.py`:
 
 ```text
-|0> = |00>,  |1> = |10>,  |2> = |01>
-mu = mu_site (|10><00| + |01><00| + h.c.)
+|0> = |00>,  |1> = |10>,  |2> = |01>,  |3> = |11>
+
+mu_plus = mu_1 |10><00| + mu_2 |01><00|
+        + mu_2 mu_esa_scale |11><10|
+        + mu_1 mu_esa_scale |11><01|
 ```
 
 Run:
@@ -142,15 +148,20 @@ Run:
 python diagnose_exciton_dimer_spectra.py
 ```
 
-The diagnostic compares `J = 0`, `J > 0`, `J < 0`, and each sign with
-incoherent transfer. With the current Hamiltonian convention
+The diagnostic compares `J = 0`, both signs of `J` with ESA off/on, and both
+signs with ESA plus incoherent transfer. Set `mu_esa_scale = 0` to suppress
+excited-state absorption paths, or leave the default `mu_esa_scale = 1` to
+include them.
+
+With the current Hamiltonian convention
 
 ```text
 H_site = omega_1 |10><10| + omega_2 |01><01|
-       + J_bd (|10><01| + |01><10|)
+       + (omega_1 + omega_2 + Delta) |11><11|
+       + J_12 (|10><01| + |01><10|)
 ```
 
-positive `J_bd` brightens the upper exciton in the equal-site, parallel-dipole
+positive `J_12` brightens the upper exciton in the equal-site, parallel-dipole
 limit. If the desired convention is that positive `J` lowers the bright
 symmetric exciton, the Hamiltonian coupling should be written with the opposite
 sign, `-J`.

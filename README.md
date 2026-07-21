@@ -23,6 +23,9 @@ pathway components deform under the rotated dephasing Liouvillian.
   control variables.
 - `Liouville_transport_expansion.py`: derivative expansion of the pathway
   transport matrix `T(lambda)` around the reference model.
+- `fit_v_system_transport_signal.py`: proof-of-concept inverse fit that
+  generates a 2D V-system target signal and recovers the control displacement
+  with the transported-signal expansion.
 - `run_liouville_transport.py`: command-line driver for transport sweeps and
   plots.
 - `Compute_responses.py`: response computation helper.
@@ -56,6 +59,46 @@ Choose another output directory:
 ```bash
 python run_liouville_transport.py --output-dir results_transport
 ```
+
+## V-System Transport Fit
+
+The script `fit_v_system_transport_signal.py` tests the current proof-of-concept
+transport expansion as an inverse problem. It builds the V-system with two
+selected controls,
+
+```python
+ControlSpec("J_bd", reference_value=0.0, scale=0.02)
+ControlSpec("k_bd", reference_value=0.006, scale=0.003)
+```
+
+then draws a random dimensionless target lambda-vector, computes the exact 2D
+third-order target signal, and minimizes the mismatch to a signal reconstructed
+from the lambda-zero pathway basis and the second-order transport expansion.
+
+Run a quick smoke example:
+
+```bash
+python fit_v_system_transport_signal.py --n-omega 10 --output-dir transport_fit_output_smoke
+```
+
+Run a slightly denser default calculation:
+
+```bash
+python fit_v_system_transport_signal.py
+```
+
+The output directory contains:
+
+- `fit_summary.txt`: target lambda, fitted lambda, lambda error, and relative
+  signal errors.
+- `fit_v_system_transport_signal.npz`: numerical arrays for later analysis.
+- `reference_signal_real.png`, `target_signal_real.png`,
+  `fit_signal_real.png`, and `fit_residual_real.png`: real-part 2D signal
+  panels.
+
+This script uses finite-difference pathway derivatives. It is meant to preserve
+the analysis workflow while the next revision replaces that derivative backend
+with autodiff and the diagrammatic Duhamel expansion.
 
 ## Diagnostics
 

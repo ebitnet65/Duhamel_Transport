@@ -13,10 +13,10 @@ __pycache__/
 basis_diagnostics/
 stage_diagnostics/
 transport_output/
+transport_fit_output*/
 figures/
 
 # Local environments
 .venv/
 venv/
 env/
-

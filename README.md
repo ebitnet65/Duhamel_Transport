@@ -21,6 +21,8 @@ pathway components deform under the rotated dephasing Liouvillian.
 - `Liouville_transport_general.py`: model-agnostic transport core where users
   supply a Liouvillian, initial state, transition dipole operator, and selected
   control variables.
+- `Liouville_transport_expansion.py`: derivative expansion of the pathway
+  transport matrix `T(lambda)` around the reference model.
 - `run_liouville_transport.py`: command-line driver for transport sweeps and
   plots.
 - `Compute_responses.py`: response computation helper.
@@ -111,6 +113,23 @@ first and second derivatives with respect to selected controls. It is intended
 as the reference backend before adding autodiff. These derivatives are with
 respect to dimensionless lambda coordinates at the best-guess model, not
 necessarily raw physical parameters.
+
+`Liouville_transport_expansion.py` projects pathway-state derivatives onto the
+reference pathway basis to build
+
+```text
+T_ab(lambda) = delta_ab
+             + lambda_mu T_ab,mu
+             + 1/2 lambda_mu lambda_nu T_ab,munu
+             + ...
+```
+
+The current implementation computes pathway-state derivatives by finite
+differences of exact pathway states. It accepts the Liouvillian derivative
+dictionary from `finite_difference_liouvillian_derivatives`, which fixes the
+interface for the next step: replacing finite-difference pathway derivatives
+with the diagrammatic Duhamel expansion driven by `partial_mu L` and
+`partial_mu partial_nu L`.
 
 ### Parameter Notation
 

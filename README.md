@@ -81,7 +81,7 @@ Run a quick smoke example:
 python fit_v_system_transport_signal.py --n-omega 10 --output-dir transport_fit_output_smoke
 ```
 
-Run a slightly denser default calculation:
+Run the default validation calculation on a 40 by 40 frequency grid:
 
 ```bash
 python fit_v_system_transport_signal.py

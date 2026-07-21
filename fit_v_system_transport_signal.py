@@ -296,7 +296,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Fit V-system lambda controls from a transported 2D signal."
     )
-    parser.add_argument("--n-omega", type=int, default=18)
+    parser.add_argument("--n-omega", type=int, default=40)
     parser.add_argument("--omega-min", type=float, default=0.82)
     parser.add_argument("--omega-max", type=float, default=1.34)
     parser.add_argument("--tau2", type=float, default=1.0)

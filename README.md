@@ -195,6 +195,8 @@ workflow and output are the intended validation target:
 - exact target pathway signal;
 - exact projected transport reconstruction;
 - first- and second-order transport reconstructions;
+- fitted correction values, reported as input-vs-fit lambda and physical
+  parameter displacements;
 - residual maps;
 - transport-matrix heat maps;
 - an error curve along the target lambda direction.
@@ -213,6 +215,13 @@ the reference pathway subspace too aggressively.
 The reference model is explicitly the `J_12 = 0` model. The exact model spectra
 are the "model experimental" spectra; the transported pathway signals are the
 objects used to validate the Duhamel/transport expansion.
+
+The `demo_summary.txt` file includes an `input-vs-fit corrections` table. It
+compares the injected control displacements with the best-fit displacements
+found by minimizing the transported pathway-signal residual. For the current
+two-control demo, `J_12` and `k_12` are somewhat correlated in this metric, so
+the fitted corrections should be read as a recoverability diagnostic rather
+than as a claim that the inverse problem is uniquely conditioned.
 
 ## Diagnostics
 

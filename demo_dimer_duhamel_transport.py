@@ -24,6 +24,7 @@ import argparse
 import os
 
 import numpy as np
+from scipy.optimize import differential_evolution
 
 import Liouville_transport_general as general
 from exciton_dimer_model import exciton_dimer_model, exciton_dimer_parameter_map
@@ -198,6 +199,33 @@ def transported_signal_from_matrix(reference_pathway_signals: np.ndarray, T: np.
     return reference_pathway_signals @ pathway_weights
 
 
+def correction_table(
+    parameter_map: general.ParameterMap,
+    input_lam: np.ndarray,
+    fit_lam: np.ndarray,
+) -> list[dict[str, float | str]]:
+    rows = []
+    for index, control in enumerate(parameter_map.controls):
+        input_delta = control.scale * float(input_lam[index])
+        fit_delta = control.scale * float(fit_lam[index])
+        rows.append(
+            {
+                "control": control.name,
+                "reference_value": control.reference_value,
+                "scale": control.scale,
+                "input_lambda": float(input_lam[index]),
+                "fit_lambda": float(fit_lam[index]),
+                "lambda_error": float(fit_lam[index] - input_lam[index]),
+                "input_delta": input_delta,
+                "fit_delta": fit_delta,
+                "delta_error": fit_delta - input_delta,
+                "input_value": control.reference_value + input_delta,
+                "fit_value": control.reference_value + fit_delta,
+            }
+        )
+    return rows
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Dimer Duhamel/transport proof-of-concept demo."
@@ -212,6 +240,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lambda-k", type=float, default=0.25)
     parser.add_argument("--delta-J", type=float, default=0.045)
     parser.add_argument("--delta-k", type=float, default=0.012)
+    parser.add_argument("--fit-bound", type=float, default=0.8)
     parser.add_argument("--order", type=int, choices=(1, 2), default=2)
     parser.add_argument(
         "--sectors",
@@ -337,6 +366,35 @@ def main() -> None:
     residual_signal = selected_reconstruction - exact_target_pathway_signal
     T_target = expansion.evaluate(target_lam, order=args.order)
 
+    def fit_objective(lam: np.ndarray) -> float:
+        predicted = transported_signal(
+            reference_pathway_signals,
+            expansion,
+            lam,
+            order=args.order,
+        )
+        return relative_error(exact_target_pathway_signal, predicted) ** 2
+
+    fit_result = differential_evolution(
+        fit_objective,
+        bounds=[(-args.fit_bound, args.fit_bound)] * parameter_map.control_dimension,
+        seed=0,
+        tol=1e-8,
+        atol=1e-12,
+        maxiter=200,
+        popsize=12,
+        polish=True,
+        updating="immediate",
+    )
+    fit_lam = fit_result.x
+    fitted_reconstruction = transported_signal(
+        reference_pathway_signals,
+        expansion,
+        fit_lam,
+        order=args.order,
+    )
+    correction_rows = correction_table(parameter_map, target_lam, fit_lam)
+
     scan = np.linspace(0.0, 1.0, 6)
     first_errors = []
     second_errors = []
@@ -419,6 +477,14 @@ def main() -> None:
             args.output_dir / f"pathway_transport_residual_order{args.order}_{component}.png",
             component=component,
         )
+        plot_signal_contours(
+            omega1_values,
+            omega3_values,
+            fitted_reconstruction,
+            f"Fitted transport reconstruction, order {args.order}",
+            args.output_dir / f"pathway_target_fitted_reconstruction_order{args.order}_{component}.png",
+            component=component,
+        )
 
     plot_transport_matrix(
         T_target,
@@ -455,11 +521,38 @@ def main() -> None:
         handle.write("reference model is fixed at lambda=0, with J_12=0 by construction\n")
         handle.write(f"target lambda: {np.array2string(target_lam, precision=8)}\n")
         handle.write(f"physical displacements: {parameter_map.physical_displacements(target_lam)}\n")
+        handle.write(f"fit lambda: {np.array2string(fit_lam, precision=8)}\n")
+        handle.write(f"fit physical displacements: {parameter_map.physical_displacements(fit_lam)}\n")
+        handle.write(f"lambda fit norm error: {np.linalg.norm(fit_lam - target_lam):.12e}\n")
+        handle.write(f"fit objective: {fit_result.fun:.12e}\n")
+        handle.write(f"fit success: {fit_result.success}\n")
+        handle.write(f"fit message: {fit_result.message}\n")
         handle.write(f"reference params J_12={params0['J_12']:.12e}, k_12={params0['k_12']:.12e}\n")
         handle.write(
             f"target params J_12={params_target['J_12']:.12e}, "
             f"k_12={params_target['k_12']:.12e}\n\n"
         )
+        handle.write("input-vs-fit corrections\n")
+        handle.write("-" * 72 + "\n")
+        handle.write(
+            "control reference scale input_lambda fit_lambda lambda_error "
+            "input_delta fit_delta delta_error input_value fit_value\n"
+        )
+        for row in correction_rows:
+            handle.write(
+                f"{row['control']} "
+                f"{row['reference_value']:.12e} "
+                f"{row['scale']:.12e} "
+                f"{row['input_lambda']:.12e} "
+                f"{row['fit_lambda']:.12e} "
+                f"{row['lambda_error']:.12e} "
+                f"{row['input_delta']:.12e} "
+                f"{row['fit_delta']:.12e} "
+                f"{row['delta_error']:.12e} "
+                f"{row['input_value']:.12e} "
+                f"{row['fit_value']:.12e}\n"
+            )
+        handle.write("\n")
         handle.write(f"number of retained pathways: {len(pathways)}\n")
         handle.write(f"candidate residual max: {np.max(candidate_residuals):.12e}\n")
         handle.write(f"||T0-I||: {np.linalg.norm(expansion.T0 - np.eye(len(pathways))):.12e}\n")
@@ -474,6 +567,10 @@ def main() -> None:
         handle.write(
             "second-order target relative error: "
             f"{relative_error(exact_target_pathway_signal, reconstructed_second):.12e}\n"
+        )
+        handle.write(
+            "fitted transport target relative error: "
+            f"{relative_error(exact_target_pathway_signal, fitted_reconstruction):.12e}\n"
         )
         handle.write(
             "reference-to-target pathway change: "
@@ -496,8 +593,38 @@ def main() -> None:
         exact_projected_transport_signal=exact_projected_transport_signal,
         reconstructed_first=reconstructed_first,
         reconstructed_second=reconstructed_second,
+        fitted_reconstruction=fitted_reconstruction,
         T_exact=T_exact,
         T_target=T_target,
+        fit_lam=fit_lam,
+        correction_control_names=np.asarray([row["control"] for row in correction_rows], dtype=str),
+        correction_table=np.asarray([
+            [
+                row["reference_value"],
+                row["scale"],
+                row["input_lambda"],
+                row["fit_lambda"],
+                row["lambda_error"],
+                row["input_delta"],
+                row["fit_delta"],
+                row["delta_error"],
+                row["input_value"],
+                row["fit_value"],
+            ]
+            for row in correction_rows
+        ], dtype=float),
+        correction_table_columns=np.asarray([
+            "reference_value",
+            "scale",
+            "input_lambda",
+            "fit_lambda",
+            "lambda_error",
+            "input_delta",
+            "fit_delta",
+            "delta_error",
+            "input_value",
+            "fit_value",
+        ], dtype=str),
         labels=np.asarray(expansion.labels, dtype=str),
         scan=scan,
         first_errors=first_errors,
@@ -508,6 +635,9 @@ def main() -> None:
     print("=" * 72)
     print(f"target lambda: {np.array2string(target_lam, precision=8)}")
     print(f"physical displacements: {parameter_map.physical_displacements(target_lam)}")
+    print(f"fit lambda   : {np.array2string(fit_lam, precision=8)}")
+    print(f"fit displacements: {parameter_map.physical_displacements(fit_lam)}")
+    print(f"lambda fit norm error: {np.linalg.norm(fit_lam - target_lam):.6e}")
     print(f"retained pathways: {len(pathways)}")
     print(
         "relative error, exact projected transport: "
@@ -520,6 +650,10 @@ def main() -> None:
     print(
         "relative error, second order: "
         f"{relative_error(exact_target_pathway_signal, reconstructed_second):.6e}"
+    )
+    print(
+        "relative error, fitted transport: "
+        f"{relative_error(exact_target_pathway_signal, fitted_reconstruction):.6e}"
     )
     print(f"summary: {summary_file}")
 

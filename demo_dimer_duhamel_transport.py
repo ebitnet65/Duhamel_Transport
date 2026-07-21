@@ -226,6 +226,27 @@ def correction_table(
     return rows
 
 
+def write_correction_rows(handle, rows: list[dict[str, float | str]]) -> None:
+    handle.write(
+        "control reference scale target_lambda target_delta target_value "
+        "fit_lambda fit_delta fit_value lambda_error delta_error\n"
+    )
+    for row in rows:
+        handle.write(
+            f"{row['control']} "
+            f"{row['reference_value']:.12e} "
+            f"{row['scale']:.12e} "
+            f"{row['input_lambda']:.12e} "
+            f"{row['input_delta']:.12e} "
+            f"{row['input_value']:.12e} "
+            f"{row['fit_lambda']:.12e} "
+            f"{row['fit_delta']:.12e} "
+            f"{row['fit_value']:.12e} "
+            f"{row['lambda_error']:.12e} "
+            f"{row['delta_error']:.12e}\n"
+        )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Dimer Duhamel/transport proof-of-concept demo."
@@ -513,46 +534,60 @@ def main() -> None:
     with summary_file.open("w", encoding="utf-8") as handle:
         handle.write("Dimer Duhamel/transport proof of concept\n")
         handle.write("=" * 72 + "\n\n")
+        handle.write("Scope\n")
+        handle.write("-" * 72 + "\n")
+        handle.write(
+            "The TARGET section gives the exact input parameters used to generate "
+            "the displaced model spectra.\n"
+        )
+        handle.write(
+            "The INVERSE-FIT section is a separate diagnostic that asks what "
+            "correction values are recovered by minimizing the transported "
+            "pathway-signal residual.\n\n"
+        )
+
+        handle.write("Numerical setup\n")
+        handle.write("-" * 72 + "\n")
         handle.write("Derivative backend: finite-difference pathway transport\n")
         handle.write(f"sectors: {list(sectors)}\n")
         handle.write(f"n_omega: {args.n_omega}\n")
         handle.write(f"omega window: {args.omega_min:.8f} to {args.omega_max:.8f} eV\n")
-        handle.write(f"eta: {args.eta:.12e}\n")
-        handle.write("reference model is fixed at lambda=0, with J_12=0 by construction\n")
+        handle.write(f"eta: {args.eta:.12e}\n\n")
+
+        handle.write("Reference model\n")
+        handle.write("-" * 72 + "\n")
+        handle.write("lambda_reference = [0, 0]\n")
+        handle.write(f"reference params J_12={params0['J_12']:.12e}, k_12={params0['k_12']:.12e}\n")
+        handle.write("J_12 is zero in the reference model by construction.\n\n")
+
+        handle.write("Injected target corrections used to generate target spectra\n")
+        handle.write("-" * 72 + "\n")
         handle.write(f"target lambda: {np.array2string(target_lam, precision=8)}\n")
-        handle.write(f"physical displacements: {parameter_map.physical_displacements(target_lam)}\n")
+        handle.write(f"target physical displacements: {parameter_map.physical_displacements(target_lam)}\n")
+        handle.write(
+            f"target params J_12={params_target['J_12']:.12e}, "
+            f"k_12={params_target['k_12']:.12e}\n\n"
+        )
+
+        handle.write("Input target versus inverse-fit diagnostic\n")
+        handle.write("-" * 72 + "\n")
+        handle.write(
+            "The target columns below are the exact injected corrections. "
+            "The fit columns are inferred corrections from an inverse residual "
+            "minimization and need not equal the injected values if the inverse "
+            "metric is not uniquely conditioned.\n"
+        )
+        write_correction_rows(handle, correction_rows)
+        handle.write("\n")
         handle.write(f"fit lambda: {np.array2string(fit_lam, precision=8)}\n")
         handle.write(f"fit physical displacements: {parameter_map.physical_displacements(fit_lam)}\n")
         handle.write(f"lambda fit norm error: {np.linalg.norm(fit_lam - target_lam):.12e}\n")
         handle.write(f"fit objective: {fit_result.fun:.12e}\n")
         handle.write(f"fit success: {fit_result.success}\n")
-        handle.write(f"fit message: {fit_result.message}\n")
-        handle.write(f"reference params J_12={params0['J_12']:.12e}, k_12={params0['k_12']:.12e}\n")
-        handle.write(
-            f"target params J_12={params_target['J_12']:.12e}, "
-            f"k_12={params_target['k_12']:.12e}\n\n"
-        )
-        handle.write("input-vs-fit corrections\n")
+        handle.write(f"fit message: {fit_result.message}\n\n")
+
+        handle.write("Transport reconstruction diagnostics at injected target lambda\n")
         handle.write("-" * 72 + "\n")
-        handle.write(
-            "control reference scale input_lambda fit_lambda lambda_error "
-            "input_delta fit_delta delta_error input_value fit_value\n"
-        )
-        for row in correction_rows:
-            handle.write(
-                f"{row['control']} "
-                f"{row['reference_value']:.12e} "
-                f"{row['scale']:.12e} "
-                f"{row['input_lambda']:.12e} "
-                f"{row['fit_lambda']:.12e} "
-                f"{row['lambda_error']:.12e} "
-                f"{row['input_delta']:.12e} "
-                f"{row['fit_delta']:.12e} "
-                f"{row['delta_error']:.12e} "
-                f"{row['input_value']:.12e} "
-                f"{row['fit_value']:.12e}\n"
-            )
-        handle.write("\n")
         handle.write(f"number of retained pathways: {len(pathways)}\n")
         handle.write(f"candidate residual max: {np.max(candidate_residuals):.12e}\n")
         handle.write(f"||T0-I||: {np.linalg.norm(expansion.T0 - np.eye(len(pathways))):.12e}\n")

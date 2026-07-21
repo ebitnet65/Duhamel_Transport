@@ -223,6 +223,16 @@ two-control demo, `J_12` and `k_12` are somewhat correlated in this metric, so
 the fitted corrections should be read as a recoverability diagnostic rather
 than as a claim that the inverse problem is uniquely conditioned.
 
+The report separates these ideas explicitly:
+
+- `Injected target corrections used to generate target spectra`: the exact
+  lambda values, physical deltas, and target parameters used to build the model
+  spectra.
+- `Input target versus inverse-fit diagnostic`: the optional recovered
+  correction values inferred by minimizing the residual.
+- `Transport reconstruction diagnostics at injected target lambda`: the
+  reconstruction errors evaluated at the known injected target.
+
 ## Diagnostics
 
 Run the reference-basis diagnostic:

@@ -112,6 +112,33 @@ as the reference backend before adding autodiff. These derivatives are with
 respect to dimensionless lambda coordinates at the best-guess model, not
 necessarily raw physical parameters.
 
+### Parameter Notation
+
+For the V-system examples we use:
+
+- `J_bd`: coherent bright-dark exchange coupling in the Hamiltonian,
+  `J_bd (|b><d| + |d><b|)`.
+- `k_bd`: incoherent bright-dark transfer scale used to form detailed-balance
+  Lindblad rates.
+- `delta_X`: the physical displacement scale for parameter `X`.
+
+In code, `ControlSpec.scale` stores this `delta_X`. For example:
+
+```python
+ControlSpec("J_bd", reference_value=0.0, scale=0.02)
+ControlSpec("k_bd", reference_value=0.006, scale=0.003)
+```
+
+means
+
+```text
+J_bd(lambda_J) = 0.0   + delta_J * lambda_J,  delta_J = 0.02
+k_bd(lambda_k) = 0.006 + delta_k * lambda_k,  delta_k = 0.003
+```
+
+We avoid the symbol `sigma_X` for these scales because sigma can be confused
+with a variance or standard deviation in statistical contexts.
+
 The test file `test_v_system_general.py` gives a concrete 3-level V-system
 example with states `|g>`, `|b>`, and `|d>`. The model defines:
 
@@ -157,7 +184,7 @@ D_b = d @ b.conj().T
 B_g = b @ g.conj().T
 D_g = d @ g.conj().T
 
-H = omega_b * Pb + omega_d * Pd + v_bd * (B_d + D_b)
+H = omega_b * Pb + omega_d * Pd + J_bd * (B_d + D_b)
 
 mu_plus = mu_gb * B_g + mu_gd * D_g
 mu_minus = mu_plus.conj().T

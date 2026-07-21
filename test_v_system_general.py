@@ -64,7 +64,7 @@ def v_system_hamiltonian(params):
     return (
         params["omega_b"] * projector(1, dim)
         + params["omega_d"] * projector(2, dim)
-        + params["v_bd"] * (op(1, 2, dim) + op(2, 1, dim))
+        + params["J_bd"] * (op(1, 2, dim) + op(2, 1, dim))
     )
 
 
@@ -124,12 +124,12 @@ def v_system_model():
 
 def v_system_parameter_map(*controls):
     if not controls:
-        controls = (general.ControlSpec("v_bd", reference_value=0.0),)
+        controls = (general.ControlSpec("J_bd", reference_value=0.0),)
     return general.ParameterMap(
         reference_params={
             "omega_b": 1.0,
             "omega_d": 1.18,
-            "v_bd": 0.0,
+            "J_bd": 0.0,
             "gamma_b": 0.03,
             "gamma_d": 0.004,
             "gamma_phi_b": 0.02,
@@ -171,7 +171,7 @@ def test_v_system_model_construction_is_operator_first_and_qutip_like():
     hamiltonian = (
         params["omega_b"] * projectors["b"]
         + params["omega_d"] * projectors["d"]
-        + params["v_bd"] * (transitions["b_d"] + transitions["d_b"])
+        + params["J_bd"] * (transitions["b_d"] + transitions["d_b"])
     )
     mu_plus = params["mu_gb"] * transitions["b_g"] + params["mu_gd"] * transitions["d_g"]
     mu_minus = mu_plus.conj().T
@@ -356,12 +356,12 @@ def test_v_system_general_transport_has_identity_at_zero_control():
 def test_v_system_can_expand_wrt_subset_of_parameters():
     model = v_system_model()
     pmap = v_system_parameter_map(
-        general.ControlSpec("v_bd", reference_value=0.0, scale=0.02),
+        general.ControlSpec("J_bd", reference_value=0.0, scale=0.02),
         general.ControlSpec("mu_gd", reference_value=0.08, scale=0.01),
     )
 
     params = pmap.params([2.0, -3.0])
-    assert params["v_bd"] == 0.04
+    assert params["J_bd"] == 0.04
     assert params["mu_gd"] == 0.05
     assert params["omega_b"] == 1.0
 
@@ -371,3 +371,57 @@ def test_v_system_can_expand_wrt_subset_of_parameters():
     assert derivatives[()].shape == (9, 9)
     assert np.linalg.norm(derivatives[(0,)]) > 0.0
     np.testing.assert_allclose(derivatives[(1,)], np.zeros((9, 9)), atol=1e-10)
+
+
+def test_v_system_compares_coherent_exchange_and_incoherent_transfer_controls():
+    model = v_system_model()
+    pmap = v_system_parameter_map(
+        general.ControlSpec("J_bd", reference_value=0.0, scale=0.02),
+        general.ControlSpec("k_bd", reference_value=0.006, scale=0.003),
+    )
+    omegas = np.linspace(0.85, 1.3, 6)
+    candidates = general.canonical_pathways(("RP",))
+    pathways, _candidate_residuals = general.independent_canonical_pathways(
+        model,
+        pmap,
+        omegas,
+        candidates,
+        stage="after_U2",
+    )
+
+    reference = general.liouville_transport_matrix(
+        model,
+        pmap,
+        np.array([0.0, 0.0]),
+        omegas,
+        pathways,
+        stage="after_U2",
+    )
+    coherent_shift = general.liouville_transport_matrix(
+        model,
+        pmap,
+        np.array([1.0, 0.0]),
+        omegas,
+        pathways,
+        stage="after_U2",
+    )
+    incoherent_shift = general.liouville_transport_matrix(
+        model,
+        pmap,
+        np.array([0.0, 1.0]),
+        omegas,
+        pathways,
+        stage="after_U2",
+    )
+
+    coherent_displacements = pmap.physical_displacements([1.0, 0.0])
+    incoherent_displacements = pmap.physical_displacements([0.0, 1.0])
+    np.testing.assert_allclose(coherent_displacements["J_bd"], 0.02)
+    np.testing.assert_allclose(coherent_displacements["k_bd"], 0.0)
+    np.testing.assert_allclose(incoherent_displacements["J_bd"], 0.0)
+    np.testing.assert_allclose(incoherent_displacements["k_bd"], 0.003)
+    np.testing.assert_allclose(reference.T, np.eye(len(pathways)), atol=1e-9)
+    assert np.linalg.norm(coherent_shift.T - reference.T) > 0.0
+    assert np.linalg.norm(incoherent_shift.T - reference.T) > 0.0
+    assert np.max(coherent_shift.residuals) >= 0.0
+    assert np.max(incoherent_shift.residuals) >= 0.0

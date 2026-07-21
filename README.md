@@ -26,6 +26,8 @@ pathway components deform under the rotated dephasing Liouvillian.
 - `fit_v_system_transport_signal.py`: proof-of-concept inverse fit that
   generates a 2D V-system target signal and recovers the control displacement
   with the transported-signal expansion.
+- `diagnose_v_system_spectra.py`: V-system spectral sanity check comparing no
+  bright-dark mixing, coherent mixing, and coherent plus incoherent transfer.
 - `run_liouville_transport.py`: command-line driver for transport sweeps and
   plots.
 - `Compute_responses.py`: response computation helper.
@@ -101,6 +103,27 @@ The output directory contains:
 This script uses finite-difference pathway derivatives. It is meant to preserve
 the analysis workflow while the next revision replaces that derivative backend
 with autodiff and the diagrammatic Duhamel expansion.
+
+## V-System Spectral Check
+
+The default V-system treats `|D>` as optically dark:
+
+```text
+mu = mu_gb (|B><g| + |g><B|),    mu_gd = 0
+```
+
+Use the spectral diagnostic to compare no mixing, coherent `J_bd` mixing, and
+coherent mixing plus detailed-balance incoherent transfer:
+
+```bash
+python diagnose_v_system_spectra.py
+```
+
+The script writes side-by-side real and magnitude panels plus difference plots
+relative to the no-mixing case. It also reports window amplitudes around the
+nominal `BB`, `BD`, `DB`, and `DD` coordinates. With `mu_gd = 0`, the coherent
+dark-state contribution appears first in the mixing-induced satellite contrast
+rather than as a direct dark transition.
 
 ## Diagnostics
 
@@ -185,6 +208,8 @@ For the V-system examples we use:
 - `k_bd`: incoherent bright-dark transfer scale used to form detailed-balance
   Lindblad rates.
 - `delta_X`: the physical displacement scale for parameter `X`.
+- `mu_gd = 0`: the default dark state has no direct transition dipole from the
+  ground state; dark spectral weight must be induced dynamically.
 
 In code, `ControlSpec.scale` stores this `delta_X`. For example:
 
@@ -250,7 +275,7 @@ D_g = d @ g.conj().T
 
 H = omega_b * Pb + omega_d * Pd + J_bd * (B_d + D_b)
 
-mu_plus = mu_gb * B_g + mu_gd * D_g
+mu_plus = mu_gb * B_g
 mu_minus = mu_plus.conj().T
 mu = mu_plus + mu_minus
 

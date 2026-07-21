@@ -137,7 +137,7 @@ def v_system_parameter_map(*controls):
             "k_bd": 0.006,
             "temperature": 0.4,
             "mu_gb": 1.0,
-            "mu_gd": 0.08,
+            "mu_gd": 0.0,
         },
         controls=tuple(controls),
     )
@@ -321,6 +321,18 @@ def test_v_system_dipole_components_are_explicit_and_not_triangular_order_depend
     np.testing.assert_allclose(model.mu(params), mu_plus + mu_minus)
 
 
+def test_v_system_default_dipole_couples_ground_to_bright_only():
+    model = v_system_model()
+    params = v_system_parameter_map().params([0.0])
+    mu = model.mu(params)
+
+    np.testing.assert_allclose(mu[1, 0], params["mu_gb"])
+    np.testing.assert_allclose(mu[0, 1], params["mu_gb"])
+    np.testing.assert_allclose(mu[2, 0], 0.0)
+    np.testing.assert_allclose(mu[0, 2], 0.0)
+    np.testing.assert_allclose(params["mu_gd"], 0.0)
+
+
 def test_v_system_general_transport_has_identity_at_zero_control():
     model = v_system_model()
     pmap = v_system_parameter_map()
@@ -357,12 +369,12 @@ def test_v_system_can_expand_wrt_subset_of_parameters():
     model = v_system_model()
     pmap = v_system_parameter_map(
         general.ControlSpec("J_bd", reference_value=0.0, scale=0.02),
-        general.ControlSpec("mu_gd", reference_value=0.08, scale=0.01),
+        general.ControlSpec("mu_gd", reference_value=0.0, scale=0.01),
     )
 
     params = pmap.params([2.0, -3.0])
     assert params["J_bd"] == 0.04
-    assert params["mu_gd"] == 0.05
+    assert params["mu_gd"] == -0.03
     assert params["omega_b"] == 1.0
 
     derivatives = general.finite_difference_liouvillian_derivatives(model, pmap, step=1e-4)

@@ -83,7 +83,7 @@ def test_transport_expansion_exposes_coherent_and_incoherent_mixing_terms():
         stage="after_U2",
     )
 
-    assert np.linalg.norm(expansion.first[0]) > 0.0
+    np.testing.assert_allclose(expansion.first[0], np.zeros_like(expansion.first[0]))
+    assert np.linalg.norm(expansion.second[(0, 0)]) > 0.0
     assert np.linalg.norm(expansion.first[1]) > 0.0
-    assert np.linalg.norm(expansion.second[(0, 1)]) > 0.0
-    assert max(np.max(r) for r in expansion.first_residuals.values()) < 1.0
+    assert np.max(expansion.first_residuals[1]) < 1.0

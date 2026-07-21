@@ -32,7 +32,6 @@ from fit_v_system_transport_signal import (
     finite_difference_transport_expansion_2d,
     pathway_state_grid_matrix,
     pathway_signal_grid,
-    plot_signal_panel,
     project_transport_derivative,
     relative_error,
     transported_signal,
@@ -77,6 +76,64 @@ def plot_transport_matrix(
     fig.colorbar(image, ax=ax, label=label)
     fig.tight_layout()
     fig.savefig(output_file, dpi=250, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_signal_contours(
+    omega1_values: np.ndarray,
+    omega3_values: np.ndarray,
+    signal: np.ndarray,
+    title: str,
+    output_file: Path,
+    *,
+    component: str,
+    levels: int = 18,
+) -> None:
+    grid = signal.reshape(len(omega3_values), len(omega1_values))
+    if component == "real":
+        values = np.real(grid)
+        vmax = float(np.max(np.abs(values)))
+        contour_levels = np.linspace(-vmax, vmax, levels)
+        line_levels = np.linspace(-vmax, vmax, 9)
+        cmap = "RdBu_r"
+        label = r"$\mathrm{Re}\,S$"
+    elif component == "abs":
+        values = np.abs(grid)
+        vmax = float(np.max(values))
+        contour_levels = np.linspace(0.0, vmax, levels)
+        line_levels = np.linspace(0.0, vmax, 7)[1:]
+        cmap = "magma"
+        label = r"$|S|$"
+    else:
+        raise ValueError("component must be 'real' or 'abs'")
+
+    fig, ax = plt.subplots(figsize=(6.0, 5.2))
+    filled = ax.contourf(
+        omega1_values,
+        omega3_values,
+        values,
+        levels=contour_levels,
+        cmap=cmap,
+        extend="both" if component == "real" else "max",
+    )
+    if np.max(np.abs(line_levels)) > 0:
+        ax.contour(
+            omega1_values,
+            omega3_values,
+            values,
+            levels=line_levels,
+            colors="k",
+            linewidths=0.35,
+            alpha=0.35,
+        )
+    ax.set_xlabel(r"$\omega_1$ / eV")
+    ax.set_ylabel(r"$\omega_3$ / eV")
+    ax.set_title(title)
+    ax.set_xlim(float(omega1_values[0]), float(omega1_values[-1]))
+    ax.set_ylim(float(omega3_values[0]), float(omega3_values[-1]))
+    fig.colorbar(filled, ax=ax, label=label)
+    fig.tight_layout()
+    fig.savefig(output_file, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -145,11 +202,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Dimer Duhamel/transport proof-of-concept demo."
     )
-    parser.add_argument("--n-omega", type=int, default=24)
-    parser.add_argument("--omega-min", type=float, default=0.78)
-    parser.add_argument("--omega-max", type=float, default=1.38)
+    parser.add_argument("--n-omega", type=int, default=40)
+    parser.add_argument("--omega-min", type=float, default=0.8)
+    parser.add_argument("--omega-max", type=float, default=1.4)
     parser.add_argument("--tau2", type=float, default=1.0)
-    parser.add_argument("--eta", type=float, default=2e-3)
+    parser.add_argument("--eta", type=float, default=3e-3)
     parser.add_argument("--fd-step", type=float, default=5e-5)
     parser.add_argument("--lambda-J", type=float, default=-0.25)
     parser.add_argument("--lambda-k", type=float, default=0.25)
@@ -280,7 +337,7 @@ def main() -> None:
     residual_signal = selected_reconstruction - exact_target_pathway_signal
     T_target = expansion.evaluate(target_lam, order=args.order)
 
-    scan = np.linspace(0.0, 1.0, 8)
+    scan = np.linspace(0.0, 1.0, 6)
     first_errors = []
     second_errors = []
     for scale in scan:
@@ -314,7 +371,7 @@ def main() -> None:
     second_errors = np.asarray(second_errors)
 
     for component in ("real", "abs"):
-        plot_signal_panel(
+        plot_signal_contours(
             omega1_values,
             omega3_values,
             reference_model_signal,
@@ -322,7 +379,7 @@ def main() -> None:
             args.output_dir / f"model_reference_{component}.png",
             component=component,
         )
-        plot_signal_panel(
+        plot_signal_contours(
             omega1_values,
             omega3_values,
             target_model_signal,
@@ -330,7 +387,7 @@ def main() -> None:
             args.output_dir / f"model_target_{component}.png",
             component=component,
         )
-        plot_signal_panel(
+        plot_signal_contours(
             omega1_values,
             omega3_values,
             exact_target_pathway_signal,
@@ -338,7 +395,7 @@ def main() -> None:
             args.output_dir / f"pathway_target_exact_{component}.png",
             component=component,
         )
-        plot_signal_panel(
+        plot_signal_contours(
             omega1_values,
             omega3_values,
             exact_projected_transport_signal,
@@ -346,7 +403,7 @@ def main() -> None:
             args.output_dir / f"pathway_target_exact_projected_transport_{component}.png",
             component=component,
         )
-        plot_signal_panel(
+        plot_signal_contours(
             omega1_values,
             omega3_values,
             selected_reconstruction,
@@ -354,7 +411,7 @@ def main() -> None:
             args.output_dir / f"pathway_target_reconstructed_order{args.order}_{component}.png",
             component=component,
         )
-        plot_signal_panel(
+        plot_signal_contours(
             omega1_values,
             omega3_values,
             residual_signal,
@@ -393,6 +450,9 @@ def main() -> None:
         handle.write("Derivative backend: finite-difference pathway transport\n")
         handle.write(f"sectors: {list(sectors)}\n")
         handle.write(f"n_omega: {args.n_omega}\n")
+        handle.write(f"omega window: {args.omega_min:.8f} to {args.omega_max:.8f} eV\n")
+        handle.write(f"eta: {args.eta:.12e}\n")
+        handle.write("reference model is fixed at lambda=0, with J_12=0 by construction\n")
         handle.write(f"target lambda: {np.array2string(target_lam, precision=8)}\n")
         handle.write(f"physical displacements: {parameter_map.physical_displacements(target_lam)}\n")
         handle.write(f"reference params J_12={params0['J_12']:.12e}, k_12={params0['k_12']:.12e}\n")

@@ -179,6 +179,14 @@ lambda-zero pathway basis:
 python demo_dimer_duhamel_transport.py
 ```
 
+By default, the demo now generates contour plots on a `0.8-1.4 eV` window with
+`n_omega = 40` points along each frequency axis and a finite Green's-function
+broadening `eta = 3e-3`. For quick iteration, use a smaller grid:
+
+```bash
+python demo_dimer_duhamel_transport.py --n-omega 24 --output-dir dimer_duhamel_transport_demo_n24
+```
+
 The current derivative backend is finite-difference pathway transport. This is
 the stand-in for the future autodiff/Duhamel derivative engine, but the
 workflow and output are the intended validation target:
@@ -201,6 +209,10 @@ k_12(lambda_k) = 0.006 + 0.012 lambda_k
 The default target is a moderate local displacement,
 `lambda = (-0.25, 0.25)`, chosen to test the local expansion without leaving
 the reference pathway subspace too aggressively.
+
+The reference model is explicitly the `J_12 = 0` model. The exact model spectra
+are the "model experimental" spectra; the transported pathway signals are the
+objects used to validate the Duhamel/transport expansion.
 
 ## Diagnostics
 

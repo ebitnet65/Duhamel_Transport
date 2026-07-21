@@ -32,6 +32,9 @@ pathway components deform under the rotated dephasing Liouvillian.
   bright-dark mixing, coherent mixing, and coherent plus incoherent transfer.
 - `diagnose_exciton_dimer_spectra.py`: site-basis exciton dimer check with
   `mu = mu_site (|10><00| + |01><00| + h.c.)`, comparing both signs of `J`.
+- `demo_dimer_duhamel_transport.py`: proof-of-concept transport/Duhamel demo
+  comparing exact displaced dimer pathway signals with transported
+  reconstructions from the reference basis.
 - `run_liouville_transport.py`: command-line driver for transport sweeps and
   plots.
 - `Compute_responses.py`: response computation helper.
@@ -165,6 +168,39 @@ positive `J_12` brightens the upper exciton in the equal-site, parallel-dipole
 limit. If the desired convention is that positive `J` lowers the bright
 symmetric exciton, the Hamiltonian coupling should be written with the opposite
 sign, `-J`.
+
+## Dimer Transport Demo
+
+The proof-of-concept transport demo uses the four-level dimer with ESA on and
+compares an exact displaced pathway signal against a reconstruction from the
+lambda-zero pathway basis:
+
+```bash
+python demo_dimer_duhamel_transport.py
+```
+
+The current derivative backend is finite-difference pathway transport. This is
+the stand-in for the future autodiff/Duhamel derivative engine, but the
+workflow and output are the intended validation target:
+
+- exact reference and target model spectra;
+- exact target pathway signal;
+- exact projected transport reconstruction;
+- first- and second-order transport reconstructions;
+- residual maps;
+- transport-matrix heat maps;
+- an error curve along the target lambda direction.
+
+The default controls are `lambda = (J_12, k_12)` around the reference model:
+
+```text
+J_12(lambda_J) = 0.0   + 0.045 lambda_J
+k_12(lambda_k) = 0.006 + 0.012 lambda_k
+```
+
+The default target is a moderate local displacement,
+`lambda = (-0.25, 0.25)`, chosen to test the local expansion without leaving
+the reference pathway subspace too aggressively.
 
 ## Diagnostics
 

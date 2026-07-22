@@ -379,8 +379,7 @@ U2_at_lambda = U2.evaluate(lambda_vec, order=2)
 The resolvent derivatives are algebraic insertions such as
 `G_mu = G L_mu G`. The propagator derivatives use explicit Duhamel integrals,
 with Gauss-Legendre quadrature as a transparent reference implementation. This
-is not yet wired into the full pathway transport reconstruction; it is the
-tested core needed for that next step.
+is the tested core needed for the pathway transport expansion.
 
 `Liouville_transport_expansion.py` projects pathway-state derivatives onto the
 reference pathway basis to build
@@ -392,12 +391,45 @@ T_ab(lambda) = delta_ab
              + ...
 ```
 
-The current implementation computes pathway-state derivatives by finite
-differences of exact pathway states. It accepts the Liouvillian derivative
-dictionary from `finite_difference_liouvillian_derivatives`, which fixes the
-interface for the next step: replacing finite-difference pathway derivatives
-with the diagrammatic Duhamel expansion driven by `partial_mu L` and
-`partial_mu partial_nu L`.
+Two pathway-derivative backends are available. The finite-difference backend
+computes derivatives of exact pathway states directly and remains useful as the
+numerical validation reference. The Duhamel backend consumes Liouvillian
+derivative tensors and computes pathway-state derivatives diagrammatically from
+`partial_mu L` and `partial_mu partial_nu L`.
+
+The first Duhamel pathway backend is now available as
+`duhamel_transport_expansion(...)`:
+
+```python
+derivatives = finite_difference_liouvillian_derivatives(model, parameter_map)
+# or:
+# derivatives = jax_liouvillian_derivatives(L_from_params, parameter_map, ...)
+
+expansion = duhamel_transport_expansion(
+    model,
+    parameter_map,
+    omegas,
+    pathways,
+    liouvillian_derivatives=derivatives,
+    stage="after_U2",
+)
+```
+
+This constructs pathway-state derivatives by inserting `L_mu` and `L_munu`
+through `G1`, `U2`, and, for later stages, `G3`, then projects those derivatives
+onto the reference pathway basis to obtain `T_mu` and `T_munu`. The current
+implementation assumes that the initial state and transition dipole are fixed at
+the reference model; lambda-dependence enters through the Liouvillian. This
+matches the clean dimer controls `(J_12, k_12)`.
+
+For the full 2D signal grids used in the V-system fit and dimer demo,
+`fit_v_system_transport_signal.py` also exposes
+`duhamel_transport_expansion_2d(...)`. It has the same return type as
+`finite_difference_transport_expansion_2d(...)`, but computes the pathway-grid
+derivatives from Duhamel insertions instead of finite-differencing complete
+pathway grids. The production dimer script still defaults to the
+finite-difference backend until the Duhamel grid backend has been benchmarked on
+larger grids.
 
 ### Parameter Notation
 

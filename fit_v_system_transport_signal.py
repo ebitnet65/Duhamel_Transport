@@ -28,7 +28,10 @@ import numpy as np
 from scipy.optimize import minimize
 
 import Liouville_transport_general as general
-from Liouville_transport_expansion import TransportDerivativeExpansion
+from Liouville_transport_expansion import (
+    TransportDerivativeExpansion,
+    duhamel_pathway_derivative_grid_matrices,
+)
 from test_v_system_general import v_system_model, v_system_parameter_map
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-duhamel-transport")
@@ -307,6 +310,65 @@ def finite_difference_transport_expansion_2d(
                 mixed,
                 rcond=rcond,
             )
+
+    return TransportDerivativeExpansion(
+        T0=T0,
+        first=first,
+        second=second,
+        residual0=residual0,
+        first_residuals=first_residuals,
+        second_residuals=second_residuals,
+        labels=tuple(item.label for item in pathways),
+        stage="after_G3",
+    )
+
+
+def duhamel_transport_expansion_2d(
+    model: general.LiouvilleModel,
+    parameter_map: general.ParameterMap,
+    omega1_values: np.ndarray,
+    omega3_values: np.ndarray,
+    pathways: list[general.CanonicalPathway],
+    *,
+    liouvillian_derivatives: dict[tuple[int, ...], np.ndarray],
+    tau2: float,
+    eta: float,
+    n_quad: int = 24,
+    rcond: float,
+) -> TransportDerivativeExpansion:
+    """Build a second-order 2D transport expansion from Duhamel insertions."""
+
+    P0, first_P, second_P = duhamel_pathway_derivative_grid_matrices(
+        model,
+        parameter_map,
+        omega1_values,
+        omega3_values,
+        pathways,
+        liouvillian_derivatives=liouvillian_derivatives,
+        stage="after_G3",
+        tau2=tau2,
+        eta=eta,
+        n_quad=n_quad,
+    )
+    T0, residual0 = project_transport_derivative(P0, P0, rcond=rcond)
+    first = {}
+    second = {}
+    first_residuals = {}
+    second_residuals = {}
+
+    for mu, derivative in first_P.items():
+        first[mu], first_residuals[mu] = project_transport_derivative(
+            P0,
+            derivative,
+            rcond=rcond,
+        )
+
+    for key, derivative in second_P.items():
+        second[key], second_residuals[key] = project_transport_derivative(
+            P0,
+            derivative,
+            rcond=rcond,
+        )
 
     return TransportDerivativeExpansion(
         T0=T0,

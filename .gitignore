@@ -18,6 +18,7 @@ v_system_spectra_diagnostics*/
 exciton_dimer_spectra_diagnostics*/
 dimer_duhamel_transport_demo*/
 dimer_duhamel_transport_production*/
+dimer_backend_benchmarks*/
 figures/
 
 # Local environments

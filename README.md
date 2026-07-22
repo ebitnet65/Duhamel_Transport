@@ -31,6 +31,10 @@ pathway components deform under the rotated dephasing Liouvillian.
   expansions.
 - `exciton_dimer_model.py`: four-level site-basis exciton dimer model with
   `|00>`, `|10>`, `|01>`, and `|11>` states, including optional ESA dipoles.
+- `exciton_dimer_autodiff.py`: JAX-compatible dimer Liouvillian using
+  rate-weighted Lindblad dissipators for smooth Liouvillian derivatives.
+- `benchmark_dimer_transport_backends.py`: timing and accuracy comparison for
+  finite-difference pathway transport versus autodiff/Duhamel transport.
 - `fit_v_system_transport_signal.py`: proof-of-concept inverse fit that
   generates a 2D V-system target signal and recovers the control displacement
   with the transported-signal expansion.
@@ -430,6 +434,27 @@ derivatives from Duhamel insertions instead of finite-differencing complete
 pathway grids. The production dimer script still defaults to the
 finite-difference backend until the Duhamel grid backend has been benchmarked on
 larger grids.
+
+To compare the finite-difference and autodiff/Duhamel backends on the clean
+dimer:
+
+```bash
+python benchmark_dimer_transport_backends.py --n-omega 12 16 24 --n-quad 16
+```
+
+For a production-scale Duhamel-only timing run:
+
+```bash
+python benchmark_dimer_transport_backends.py \
+  --n-omega 40 80 120 \
+  --n-quad 16 \
+  --backends duhamel_autodiff
+```
+
+The benchmark reports backend CPU time, exact projected transport error, first-
+and second-order reconstruction errors, and transport-matrix errors. The exact
+projected transport calculation is kept as a common benchmark cost and reported
+separately from the derivative backend time.
 
 ### Parameter Notation
 

@@ -45,9 +45,14 @@ from fit_v_system_transport_signal import (
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-duhamel-transport")
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 
 
 SPECTRUM_COMPONENTS = ("real", "imag", "abs")
+ABS_TRANSPORT_CMAP = LinearSegmentedColormap.from_list(
+    "transport_abs_white_red",
+    ["#ffffff", "#fee8c8", "#fdbb84", "#e34a33", "#7f0000"],
+)
 
 
 def log_progress(message: str, start_perf: float) -> None:
@@ -80,28 +85,62 @@ def plot_transport_matrix(
 ) -> None:
     if component == "abs":
         values = np.abs(matrix)
-        cmap = "magma"
+        cmap = ABS_TRANSPORT_CMAP
         label = r"$|T_a^b|$"
-        vmin = 0.0
         vmax = float(np.max(values))
+        norm = None
+        vmin = 0.0
     elif component == "real":
         values = np.real(matrix)
         cmap = "RdBu_r"
         label = r"$\mathrm{Re}\,T_a^b$"
         vmax = float(np.max(np.abs(values)))
         vmin = -vmax
+        norm = TwoSlopeNorm(vmin=vmin, vcenter=0.0, vmax=vmax) if vmax > 0 else None
     else:
         raise ValueError("component must be 'abs' or 'real'")
 
+    tick_labels = [label.replace("-", "\n", 1) for label in labels]
     fig, ax = plt.subplots(figsize=(7.2, 6.4))
-    image = ax.imshow(values, origin="lower", cmap=cmap, vmin=vmin, vmax=vmax)
+    if norm is None:
+        image = ax.imshow(values, origin="lower", cmap=cmap, vmin=vmin, vmax=vmax)
+    else:
+        image = ax.imshow(values, origin="lower", cmap=cmap, norm=norm)
     ax.set_title(title)
-    ax.set_xlabel("reference basis index b")
-    ax.set_ylabel("transported pathway index a")
+    ax.set_xlabel("reference basis pathway b")
+    ax.set_ylabel("transported pathway a")
     ax.set_xticks(np.arange(len(labels)))
     ax.set_yticks(np.arange(len(labels)))
-    ax.set_xticklabels(np.arange(len(labels)))
-    ax.set_yticklabels(np.arange(len(labels)))
+    ax.set_xticklabels(tick_labels, rotation=45, ha="right", fontsize=8)
+    ax.set_yticklabels(tick_labels, fontsize=8)
+    ax.set_xticks(np.arange(-0.5, len(labels), 1.0), minor=True)
+    ax.set_yticks(np.arange(-0.5, len(labels), 1.0), minor=True)
+    ax.grid(which="minor", color="0.88", linewidth=0.8)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+    sectors = [label.split("-", 1)[0] for label in labels]
+    for index in range(1, len(sectors)):
+        if sectors[index] != sectors[index - 1]:
+            ax.axhline(index - 0.5, color="0.15", linewidth=1.8)
+            ax.axvline(index - 0.5, color="0.15", linewidth=1.8)
+
+    if len(labels) <= 8:
+        scale = vmax if vmax > 0 else 1.0
+        for row in range(values.shape[0]):
+            for col in range(values.shape[1]):
+                value = values[row, col]
+                if abs(value) < 5e-4 * scale:
+                    continue
+                text_color = "white" if abs(value) > 0.6 * scale else "black"
+                ax.text(
+                    col,
+                    row,
+                    f"{value:.2f}",
+                    ha="center",
+                    va="center",
+                    fontsize=7,
+                    color=text_color,
+                )
     fig.colorbar(image, ax=ax, label=label)
     fig.tight_layout()
     fig.savefig(output_file, dpi=250, bbox_inches="tight")

@@ -102,7 +102,7 @@ def test_duhamel_pathway_derivatives_match_finite_difference_backend():
     model, pmap, omegas, pathways = _v_system_basis()
     l_derivs = general.finite_difference_liouvillian_derivatives(model, pmap, step=1e-4)
 
-    P0_duh, first_duh, second_duh = duhamel_pathway_derivative_matrices(
+    P0_duh, first_duh, second_duh, third_duh = duhamel_pathway_derivative_matrices(
         model,
         pmap,
         omegas[:3],
@@ -127,6 +127,7 @@ def test_duhamel_pathway_derivatives_match_finite_difference_backend():
         np.testing.assert_allclose(first_duh[key], first_fd[key], rtol=2e-5, atol=2e-6)
     for key in second_duh:
         np.testing.assert_allclose(second_duh[key], second_fd[key], rtol=2e-4, atol=2e-5)
+    assert third_duh == {}
 
 
 def test_duhamel_transport_expansion_matches_finite_difference_transport():
@@ -155,6 +156,7 @@ def test_duhamel_transport_expansion_matches_finite_difference_transport():
         np.testing.assert_allclose(duh.first[key], fd.first[key], rtol=5e-5, atol=5e-6)
     for key in duh.second:
         np.testing.assert_allclose(duh.second[key], fd.second[key], rtol=5e-4, atol=5e-5)
+    assert duh.third == {}
 
 
 def test_duhamel_2d_transport_expansion_matches_finite_difference_transport():
@@ -192,3 +194,21 @@ def test_duhamel_2d_transport_expansion_matches_finite_difference_transport():
         np.testing.assert_allclose(duh.first[key], fd.first[key], rtol=8e-5, atol=8e-6)
     for key in duh.second:
         np.testing.assert_allclose(duh.second[key], fd.second[key], rtol=8e-3, atol=8e-4)
+    assert duh.third == {}
+
+
+def test_duhamel_transport_expansion_can_build_third_order_terms():
+    model, pmap, omegas, pathways = _v_system_basis()
+    l_derivs = general.finite_difference_liouvillian_derivatives(model, pmap, step=1e-4)
+    expansion = duhamel_transport_expansion(
+        model,
+        pmap,
+        omegas[:2],
+        pathways,
+        liouvillian_derivatives=l_derivs,
+        stage="after_J2",
+        max_order=3,
+    )
+
+    assert set(expansion.third) == {(0, 0, 0), (0, 0, 1), (0, 1, 1), (1, 1, 1)}
+    assert np.linalg.norm(expansion.evaluate(np.array([0.1, -0.1]), order=3)) > 0.0

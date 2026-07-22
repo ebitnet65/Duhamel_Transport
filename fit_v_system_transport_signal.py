@@ -334,11 +334,12 @@ def duhamel_transport_expansion_2d(
     tau2: float,
     eta: float,
     n_quad: int = 24,
+    max_order: int = 2,
     rcond: float,
 ) -> TransportDerivativeExpansion:
     """Build a second-order 2D transport expansion from Duhamel insertions."""
 
-    P0, first_P, second_P = duhamel_pathway_derivative_grid_matrices(
+    P0, first_P, second_P, third_P = duhamel_pathway_derivative_grid_matrices(
         model,
         parameter_map,
         omega1_values,
@@ -349,6 +350,7 @@ def duhamel_transport_expansion_2d(
         tau2=tau2,
         eta=eta,
         n_quad=n_quad,
+        max_order=max_order,
     )
     T0, residual0 = project_transport_derivative(P0, P0, rcond=rcond)
     first = {}
@@ -369,6 +371,14 @@ def duhamel_transport_expansion_2d(
             derivative,
             rcond=rcond,
         )
+    third = {}
+    third_residuals = {}
+    for key, derivative in third_P.items():
+        third[key], third_residuals[key] = project_transport_derivative(
+            P0,
+            derivative,
+            rcond=rcond,
+        )
 
     return TransportDerivativeExpansion(
         T0=T0,
@@ -379,6 +389,8 @@ def duhamel_transport_expansion_2d(
         second_residuals=second_residuals,
         labels=tuple(item.label for item in pathways),
         stage="after_G3",
+        third=third,
+        third_residuals=third_residuals,
     )
 
 

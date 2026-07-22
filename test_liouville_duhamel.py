@@ -66,3 +66,20 @@ def test_propagator_duhamel_expansion_matches_commuting_analytic_coefficients():
         rtol=1e-10,
         atol=1e-10,
     )
+
+
+def test_third_order_duhamel_terms_match_single_control_commuting_case():
+    L0 = np.diag([-0.2 + 1.0j, -0.4 + 1.3j])
+    L1 = np.diag([0.03 - 0.02j, -0.01 + 0.04j])
+    derivatives = {
+        (): L0,
+        (0,): L1,
+        (0, 0): np.zeros_like(L0),
+        (0, 0, 0): np.zeros_like(L0),
+    }
+    omega = 1.1
+    eta = 0.003
+
+    G = resolvent_derivative_expansion(derivatives, omega, eta, max_order=3)
+    expected_G3 = 6.0 * G.value @ L1 @ G.value @ L1 @ G.value @ L1 @ G.value
+    np.testing.assert_allclose(G.third[(0, 0, 0)], expected_G3, rtol=1e-12, atol=1e-12)

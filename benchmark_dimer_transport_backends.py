@@ -193,6 +193,7 @@ def benchmark_backend(
                 tau2=args.tau2,
                 eta=args.eta,
                 n_quad=args.n_quad,
+                max_order=args.max_order,
                 rcond=args.rcond,
             )
         else:
@@ -217,20 +218,30 @@ def benchmark_backend(
         target_lam,
         order=2,
     )
+    reconstructed_order3 = reconstruct_signal(
+        sector_bases,
+        expansions,
+        target_lam,
+        order=3,
+    )
     T_exact = block_diag([basis.T_exact for basis in sector_bases])
     T_order1 = block_diag([expansion.evaluate(target_lam, order=1) for expansion in expansions])
     T_order2 = block_diag([expansion.evaluate(target_lam, order=2) for expansion in expansions])
+    T_order3 = block_diag([expansion.evaluate(target_lam, order=3) for expansion in expansions])
 
     return {
         "backend": backend,
         "backend_seconds": backend_seconds,
         "order1_error": relative_error(exact_target, reconstructed_order1),
         "order2_error": relative_error(exact_target, reconstructed_order2),
+        "order3_error": relative_error(exact_target, reconstructed_order3),
         "exact_projected_error": relative_error(exact_target, exact_projected),
         "order1_T_rel_error": relative_error(T_exact.reshape(-1), T_order1.reshape(-1)),
         "order2_T_rel_error": relative_error(T_exact.reshape(-1), T_order2.reshape(-1)),
+        "order3_T_rel_error": relative_error(T_exact.reshape(-1), T_order3.reshape(-1)),
         "order1_T_norm_ratio": np.linalg.norm(T_order1) / max(np.linalg.norm(T_exact), 1e-14),
         "order2_T_norm_ratio": np.linalg.norm(T_order2) / max(np.linalg.norm(T_exact), 1e-14),
+        "order3_T_norm_ratio": np.linalg.norm(T_order3) / max(np.linalg.norm(T_exact), 1e-14),
         "retained_pathways": sum(len(basis.pathways) for basis in sector_bases),
     }
 
@@ -267,6 +278,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fd-step", type=float, default=5e-5)
     parser.add_argument("--fd-second-step", type=float, default=1e-2)
     parser.add_argument("--n-quad", type=int, default=16)
+    parser.add_argument("--max-order", type=int, choices=(1, 2, 3), default=2)
     parser.add_argument("--rcond", type=float, default=1e-11)
     parser.add_argument(
         "--backends",
@@ -304,6 +316,7 @@ def main() -> None:
         jax_exciton_dimer_liouvillian,
         parameter_map,
         liouville_dimension=model.liouville_dimension,
+        max_order=3,
     )
     derivative_seconds = time.perf_counter() - derivative_start
     log(f"autodiff Liouvillian derivatives ready in {derivative_seconds:.3f}s")
@@ -351,12 +364,14 @@ def main() -> None:
                     "common_seconds": common_seconds,
                     "autodiff_derivative_seconds": derivative_seconds,
                     "n_quad": args.n_quad,
+                    "max_order": args.max_order,
                 }
             )
             rows.append(row)
             log(
                 f"{backend} n={n_omega}: time={row['backend_seconds']:.3f}s "
-                f"err1={row['order1_error']:.4e} err2={row['order2_error']:.4e}"
+                f"err1={row['order1_error']:.4e} err2={row['order2_error']:.4e} "
+                f"err3={row['order3_error']:.4e}"
             )
 
     csv_file = args.output_dir / "benchmark_summary.csv"
@@ -369,13 +384,17 @@ def main() -> None:
         "common_seconds",
         "autodiff_derivative_seconds",
         "n_quad",
+        "max_order",
         "exact_projected_error",
         "order1_error",
         "order2_error",
+        "order3_error",
         "order1_T_rel_error",
         "order2_T_rel_error",
+        "order3_T_rel_error",
         "order1_T_norm_ratio",
         "order2_T_norm_ratio",
+        "order3_T_norm_ratio",
     ]
     with csv_file.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -419,14 +438,14 @@ def main() -> None:
         lines.append(f"- `{backend}`: backend time scales approximately as `n_omega^{slope:.2f}`")
     lines.extend(["", "## Results", ""])
     lines.append(
-        "| backend | n_omega | backend s | exact projected err | order 1 err | order 2 err |"
+        "| backend | n_omega | backend s | exact projected err | order 1 err | order 2 err | order 3 err |"
     )
-    lines.append("|---|---:|---:|---:|---:|---:|")
+    lines.append("|---|---:|---:|---:|---:|---:|---:|")
     for row in rows:
         lines.append(
             f"| {row['backend']} | {row['n_omega']} | {row['backend_seconds']:.3f} | "
             f"{row['exact_projected_error']:.4e} | {row['order1_error']:.4e} | "
-            f"{row['order2_error']:.4e} |"
+            f"{row['order2_error']:.4e} | {row['order3_error']:.4e} |"
         )
     md_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

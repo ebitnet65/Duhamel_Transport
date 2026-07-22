@@ -456,6 +456,15 @@ and second-order reconstruction errors, and transport-matrix errors. The exact
 projected transport calculation is kept as a common benchmark cost and reported
 separately from the derivative backend time.
 
+Third-order Duhamel terms are available by adding `--max-order 3` to the
+benchmark command. The current third-order implementation is model agnostic and
+uses the same derivative dictionary convention, including optional
+`(mu, nu, eta)` Liouvillian tensors from autodiff. The resolvent third-order
+terms are algebraic and cheap. The waiting-time propagator currently uses an
+explicit triple Duhamel quadrature, so order 3 should be treated as a reference
+implementation for small grids until that propagator derivative is optimized
+with cached exponentials or block/Frechet methods.
+
 ### Parameter Notation
 
 For the V-system examples we use:

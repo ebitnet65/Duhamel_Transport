@@ -14,6 +14,7 @@ dimensionless coordinates:
     L0
     partial_mu L
     partial_mu partial_nu L
+    partial_mu partial_nu partial_eta L
 
 The output dictionary intentionally matches
 `finite_difference_liouvillian_derivatives` in `Liouville_transport_general`.
@@ -104,8 +105,8 @@ def jax_liouvillian_derivatives_from_lambda(
     - `(mu, nu)`: `partial_mu partial_nu L(lambda0)`, stored with `mu <= nu`
     """
 
-    if max_order not in (0, 1, 2):
-        raise ValueError("max_order must be 0, 1, or 2")
+    if max_order not in (0, 1, 2, 3):
+        raise ValueError("max_order must be 0, 1, 2, or 3")
 
     jax, jnp = _require_jax()
     lam_ref = (
@@ -142,6 +143,16 @@ def jax_liouvillian_derivatives_from_lambda(
                     np.asarray(hessian[:, mu, nu]).reshape(shape),
                     shape,
                 )
+
+    if max_order >= 3:
+        third = jax.jacfwd(jax.jacfwd(jax.jacfwd(flat_liouvillian)))(lam_ref)
+        for mu in range(control_dimension):
+            for nu in range(mu, control_dimension):
+                for kappa in range(nu, control_dimension):
+                    derivatives[(mu, nu, kappa)] = _as_complex_matrix(
+                        np.asarray(third[:, mu, nu, kappa]).reshape(shape),
+                        shape,
+                    )
 
     return derivatives
 

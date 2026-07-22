@@ -18,7 +18,7 @@ Both backends return the same `TransportDerivativeExpansion` object.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Sequence
 
 import numpy as np
@@ -41,6 +41,8 @@ class TransportDerivativeExpansion:
     second_residuals: dict[tuple[int, int], Array]
     labels: tuple[str, ...]
     stage: str
+    third: dict[tuple[int, int, int], Array] = field(default_factory=dict)
+    third_residuals: dict[tuple[int, int, int], Array] = field(default_factory=dict)
 
     def evaluate(self, lam: Array | Sequence[float], order: int = 2) -> Array:
         """Evaluate the Taylor approximation for a dimensionless lambda vector."""
@@ -54,6 +56,17 @@ class TransportDerivativeExpansion:
             for (mu, nu), matrix in self.second.items():
                 factor = 0.5 if mu == nu else 1.0
                 out += factor * lam_array[mu] * lam_array[nu] * matrix
+        if order >= 3:
+            for (mu, nu, kappa), matrix in self.third.items():
+                indices = (mu, nu, kappa)
+                unique = len(set(indices))
+                if unique == 1:
+                    factor = 1.0 / 6.0
+                elif unique == 2:
+                    factor = 0.5
+                else:
+                    factor = 1.0
+                out += factor * lam_array[mu] * lam_array[nu] * lam_array[kappa] * matrix
         return out
 
 
@@ -64,6 +77,7 @@ class _VectorDerivativeExpansion:
     value: Array
     first: dict[int, Array]
     second: dict[tuple[int, int], Array]
+    third: dict[tuple[int, int, int], Array]
 
 
 def _control_dimension(derivatives: dict[tuple[int, ...], Array]) -> int:
@@ -93,7 +107,12 @@ def _validate_liouvillian_derivatives(
         raise ValueError(f"Missing Liouvillian derivative keys: {sorted(missing)}")
 
 
-def _constant_vector(value: Array, n_controls: int) -> _VectorDerivativeExpansion:
+def _constant_vector(
+    value: Array,
+    n_controls: int,
+    *,
+    max_order: int = 2,
+) -> _VectorDerivativeExpansion:
     vector = np.asarray(value, dtype=complex).reshape(-1)
     zeros = np.zeros_like(vector)
     return _VectorDerivativeExpansion(
@@ -104,6 +123,16 @@ def _constant_vector(value: Array, n_controls: int) -> _VectorDerivativeExpansio
             for mu in range(n_controls)
             for nu in range(mu, n_controls)
         },
+        third=(
+            {
+                (mu, nu, kappa): zeros.copy()
+                for mu in range(n_controls)
+                for nu in range(mu, n_controls)
+                for kappa in range(nu, n_controls)
+            }
+            if max_order >= 3
+            else {}
+        ),
     )
 
 
@@ -116,6 +145,7 @@ def _apply_constant_operator(
         value=matrix @ vector.value,
         first={mu: matrix @ derivative for mu, derivative in vector.first.items()},
         second={key: matrix @ derivative for key, derivative in vector.second.items()},
+        third={key: matrix @ derivative for key, derivative in vector.third.items()},
     )
 
 
@@ -140,7 +170,22 @@ def _apply_operator_expansion(
                 + operator.first[nu] @ vector.first[mu]
                 + operator.value @ vector.second[(mu, nu)]
             )
-    return _VectorDerivativeExpansion(value=value, first=first, second=second)
+    third = {}
+    if operator.third and vector.third:
+        for mu in range(n_controls):
+            for nu in range(mu, n_controls):
+                for kappa in range(nu, n_controls):
+                    third[(mu, nu, kappa)] = (
+                        operator.third[(mu, nu, kappa)] @ vector.value
+                        + operator.second[(mu, nu)] @ vector.first[kappa]
+                        + operator.second[(mu, kappa)] @ vector.first[nu]
+                        + operator.second[(nu, kappa)] @ vector.first[mu]
+                        + operator.first[mu] @ vector.second[(nu, kappa)]
+                        + operator.first[nu] @ vector.second[(mu, kappa)]
+                        + operator.first[kappa] @ vector.second[(mu, nu)]
+                        + operator.value @ vector.third[(mu, nu, kappa)]
+                    )
+    return _VectorDerivativeExpansion(value=value, first=first, second=second, third=third)
 
 
 def _stacked_pathway_derivative_matrices(
@@ -153,7 +198,12 @@ def _stacked_pathway_derivative_matrices(
     tau2: float,
     eta: float,
     step: float,
-) -> tuple[Array, dict[int, Array], dict[tuple[int, int], Array]]:
+) -> tuple[
+    Array,
+    dict[int, Array],
+    dict[tuple[int, int], Array],
+    dict[tuple[int, int, int], Array],
+]:
     """Finite-difference derivatives of stacked pathway matrices P(lambda)."""
 
     n_controls = parameter_map.control_dimension
@@ -259,8 +309,14 @@ def duhamel_pathway_derivative_matrices(
     tau2: float = 1.0,
     eta: float = 1e-3,
     n_quad: int = 24,
+    max_order: int = 2,
     quadrature_weight: bool = True,
-) -> tuple[Array, dict[int, Array], dict[tuple[int, int], Array]]:
+) -> tuple[
+    Array,
+    dict[int, Array],
+    dict[tuple[int, int], Array],
+    dict[tuple[int, int, int], Array],
+]:
     """Construct pathway-state derivatives from Duhamel insertions.
 
     This backend assumes that the transition dipole and initial state are fixed
@@ -291,6 +347,7 @@ def duhamel_pathway_derivative_matrices(
             liouvillian_derivatives,
             tau2,
             n_quad=n_quad,
+            max_order=max_order,
         )
         if stage != "after_J2"
         else None
@@ -308,6 +365,16 @@ def duhamel_pathway_derivative_matrices(
         for mu_index in range(n_controls)
         for nu_index in range(mu_index, n_controls)
     }
+    third_columns: dict[tuple[int, int, int], list[Array]] = (
+        {
+            (mu_index, nu_index, kappa_index): []
+            for mu_index in range(n_controls)
+            for nu_index in range(mu_index, n_controls)
+            for kappa_index in range(nu_index, n_controls)
+        }
+        if max_order >= 3
+        else {}
+    )
 
     for item in pathways:
         J1 = general.interaction_super(*item.pathway[0], mu=mu, dipole_components=mu_components)
@@ -321,14 +388,16 @@ def duhamel_pathway_derivative_matrices(
             for mu_index in range(n_controls)
             for nu_index in range(mu_index, n_controls)
         }
+        third_values = {key: [] for key in third_columns}
 
         for omega in omegas_array:
             G1 = duhamel.resolvent_derivative_expansion(
                 liouvillian_derivatives,
                 general.omega1_sign_for_sector(item.sector) * float(omega),
                 eta,
+                max_order=max_order,
             )
-            state = _constant_vector(J1 @ rho, n_controls)
+            state = _constant_vector(J1 @ rho, n_controls, max_order=max_order)
             state = _apply_operator_expansion(G1, state)
             state = _apply_constant_operator(J2, state)
             if stage != "after_J2":
@@ -340,6 +409,7 @@ def duhamel_pathway_derivative_matrices(
                     liouvillian_derivatives,
                     -float(omega),
                     eta,
+                    max_order=max_order,
                 )
                 state = _apply_operator_expansion(G3, state)
 
@@ -348,6 +418,8 @@ def duhamel_pathway_derivative_matrices(
                 first_values[mu_index].append(derivative)
             for key, derivative in state.second.items():
                 second_values[key].append(derivative)
+            for key, derivative in state.third.items():
+                third_values[key].append(derivative)
 
         weights = sqrt_weight[:, None]
         value_columns.append((weights * np.asarray(values)).reshape(-1))
@@ -357,11 +429,14 @@ def duhamel_pathway_derivative_matrices(
             )
         for key in second_columns:
             second_columns[key].append((weights * np.asarray(second_values[key])).reshape(-1))
+        for key in third_columns:
+            third_columns[key].append((weights * np.asarray(third_values[key])).reshape(-1))
 
     P0 = np.column_stack(value_columns)
     first = {key: np.column_stack(columns) for key, columns in first_columns.items()}
     second = {key: np.column_stack(columns) for key, columns in second_columns.items()}
-    return P0, first, second
+    third = {key: np.column_stack(columns) for key, columns in third_columns.items()}
+    return P0, first, second, third
 
 
 def duhamel_pathway_derivative_grid_matrices(
@@ -376,6 +451,7 @@ def duhamel_pathway_derivative_grid_matrices(
     tau2: float = 1.0,
     eta: float = 1e-3,
     n_quad: int = 24,
+    max_order: int = 2,
     quadrature_weight: bool = True,
 ) -> tuple[Array, dict[int, Array], dict[tuple[int, int], Array]]:
     """Construct Duhamel pathway derivatives on a full 2D frequency grid."""
@@ -407,6 +483,7 @@ def duhamel_pathway_derivative_grid_matrices(
             liouvillian_derivatives,
             tau2,
             n_quad=n_quad,
+            max_order=max_order,
         )
         if stage != "after_J2"
         else None
@@ -419,6 +496,16 @@ def duhamel_pathway_derivative_grid_matrices(
         for mu_index in range(n_controls)
         for nu_index in range(mu_index, n_controls)
     }
+    third_columns: dict[tuple[int, int, int], list[Array]] = (
+        {
+            (mu_index, nu_index, kappa_index): []
+            for mu_index in range(n_controls)
+            for nu_index in range(mu_index, n_controls)
+            for kappa_index in range(nu_index, n_controls)
+        }
+        if max_order >= 3
+        else {}
+    )
 
     for item in pathways:
         J1 = general.interaction_super(*item.pathway[0], mu=mu, dipole_components=mu_components)
@@ -432,6 +519,7 @@ def duhamel_pathway_derivative_grid_matrices(
             for mu_index in range(n_controls)
             for nu_index in range(mu_index, n_controls)
         }
+        third_values = {key: [] for key in third_columns}
 
         for i3, omega3 in enumerate(omega3_array):
             for i1, omega1 in enumerate(omega1_array):
@@ -439,8 +527,9 @@ def duhamel_pathway_derivative_grid_matrices(
                     liouvillian_derivatives,
                     general.omega1_sign_for_sector(item.sector) * float(omega1),
                     eta,
+                    max_order=max_order,
                 )
-                state = _constant_vector(J1 @ rho, n_controls)
+                state = _constant_vector(J1 @ rho, n_controls, max_order=max_order)
                 state = _apply_operator_expansion(G1, state)
                 state = _apply_constant_operator(J2, state)
                 if stage != "after_J2":
@@ -452,6 +541,7 @@ def duhamel_pathway_derivative_grid_matrices(
                         liouvillian_derivatives,
                         -float(omega3),
                         eta,
+                        max_order=max_order,
                     )
                     state = _apply_operator_expansion(G3, state)
 
@@ -461,17 +551,22 @@ def duhamel_pathway_derivative_grid_matrices(
                     first_values[mu_index].append(weight * derivative)
                 for key, derivative in state.second.items():
                     second_values[key].append(weight * derivative)
+                for key, derivative in state.third.items():
+                    third_values[key].append(weight * derivative)
 
         value_columns.append(np.asarray(values).reshape(-1))
         for mu_index in range(n_controls):
             first_columns[mu_index].append(np.asarray(first_values[mu_index]).reshape(-1))
         for key in second_columns:
             second_columns[key].append(np.asarray(second_values[key]).reshape(-1))
+        for key in third_columns:
+            third_columns[key].append(np.asarray(third_values[key]).reshape(-1))
 
     P0 = np.column_stack(value_columns)
     first = {key: np.column_stack(columns) for key, columns in first_columns.items()}
     second = {key: np.column_stack(columns) for key, columns in second_columns.items()}
-    return P0, first, second
+    third = {key: np.column_stack(columns) for key, columns in third_columns.items()}
+    return P0, first, second, third
 
 
 def _project_derivative(P0: Array, derivative: Array, rcond: float) -> tuple[Array, Array]:
@@ -557,11 +652,12 @@ def duhamel_transport_expansion(
     tau2: float = 1.0,
     eta: float = 1e-3,
     n_quad: int = 24,
+    max_order: int = 2,
     rcond: float = 1e-12,
 ) -> TransportDerivativeExpansion:
     """Build `T(lambda)` derivatives from Duhamel pathway-state insertions."""
 
-    P0, first_P, second_P = duhamel_pathway_derivative_matrices(
+    P0, first_P, second_P, third_P = duhamel_pathway_derivative_matrices(
         model,
         parameter_map,
         omegas,
@@ -571,6 +667,7 @@ def duhamel_transport_expansion(
         tau2=tau2,
         eta=eta,
         n_quad=n_quad,
+        max_order=max_order,
     )
     T0, residual0 = _project_derivative(P0, P0, rcond)
     first = {}
@@ -582,6 +679,10 @@ def duhamel_transport_expansion(
     second_residuals = {}
     for key, derivative in second_P.items():
         second[key], second_residuals[key] = _project_derivative(P0, derivative, rcond)
+    third = {}
+    third_residuals = {}
+    for key, derivative in third_P.items():
+        third[key], third_residuals[key] = _project_derivative(P0, derivative, rcond)
 
     return TransportDerivativeExpansion(
         T0=T0,
@@ -592,6 +693,8 @@ def duhamel_transport_expansion(
         second_residuals=second_residuals,
         labels=tuple(item.label for item in pathways),
         stage=stage,
+        third=third,
+        third_residuals=third_residuals,
     )
 
 

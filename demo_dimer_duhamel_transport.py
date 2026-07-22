@@ -22,6 +22,8 @@ from __future__ import annotations
 from pathlib import Path
 import argparse
 import os
+import shlex
+import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -43,6 +45,12 @@ from fit_v_system_transport_signal import (
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-duhamel-transport")
 import matplotlib.pyplot as plt
+
+
+def log_progress(message: str, start_perf: float) -> None:
+    elapsed = time.perf_counter() - start_perf
+    stamp = datetime.now().astimezone().isoformat(timespec="seconds")
+    print(f"[{stamp} +{elapsed:9.2f}s] {message}", flush=True)
 
 
 @dataclass(frozen=True)
@@ -175,6 +183,77 @@ def plot_error_curve(
     plt.close(fig)
 
 
+def plot_sector_spectrum_triptych(
+    omega1_values: np.ndarray,
+    omega3_values: np.ndarray,
+    reference_signal: np.ndarray,
+    target_signal: np.ndarray,
+    reconstructed_signal: np.ndarray,
+    sector: str,
+    output_file: Path,
+    *,
+    component: str,
+    order: int,
+) -> None:
+    panels = (
+        ("reference", reference_signal),
+        ("target", target_signal),
+        (f"transport order {order}", reconstructed_signal),
+    )
+    values_by_panel = []
+    for _label, signal in panels:
+        grid = signal.reshape(len(omega3_values), len(omega1_values))
+        values_by_panel.append(np.real(grid) if component == "real" else np.abs(grid))
+
+    if component == "real":
+        vmax = max(float(np.max(np.abs(values))) for values in values_by_panel)
+        levels = np.linspace(-vmax, vmax, 22)
+        cmap = "RdBu_r"
+        colorbar_label = r"$\mathrm{Re}\,S$"
+        extend = "both"
+    elif component == "abs":
+        vmax = max(float(np.max(values)) for values in values_by_panel)
+        levels = np.linspace(0.0, vmax, 22)
+        cmap = "magma"
+        colorbar_label = r"$|S|$"
+        extend = "max"
+    else:
+        raise ValueError("component must be 'real' or 'abs'")
+
+    fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.2), sharex=True, sharey=True)
+    filled = None
+    for ax, (label, _signal), values in zip(axes, panels, values_by_panel, strict=True):
+        filled = ax.contourf(
+            omega1_values,
+            omega3_values,
+            values,
+            levels=levels,
+            cmap=cmap,
+            extend=extend,
+        )
+        line_levels = np.linspace(-vmax, vmax, 9) if component == "real" else np.linspace(0.0, vmax, 7)[1:]
+        if np.max(np.abs(line_levels)) > 0:
+            ax.contour(
+                omega1_values,
+                omega3_values,
+                values,
+                levels=line_levels,
+                colors="k",
+                linewidths=0.3,
+                alpha=0.3,
+            )
+        ax.set_title(label)
+        ax.set_xlabel(r"$\omega_1$ / eV")
+        ax.set_xlim(float(omega1_values[0]), float(omega1_values[-1]))
+        ax.set_ylim(float(omega3_values[0]), float(omega3_values[-1]))
+    axes[0].set_ylabel(r"$\omega_3$ / eV")
+    fig.suptitle(f"{sector} sector spectra")
+    if filled is not None:
+        fig.colorbar(filled, ax=axes, label=colorbar_label, shrink=0.9)
+    fig.savefig(output_file, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
 def exact_transport_matrix_2d(
     model: general.LiouvilleModel,
     parameter_map: general.ParameterMap,
@@ -247,6 +326,16 @@ def normalize_to_unit_power(
     power = integrated_power(signal, omega1_values, omega3_values) if norm is None else norm
     scale = np.sqrt(max(power, 1e-300))
     return signal / scale, power
+
+
+def sector_signal(data: SectorTransportData, kind: str, *, order: int) -> np.ndarray:
+    if kind == "reference":
+        return np.sum(data.reference_pathway_signals, axis=1)
+    if kind == "target":
+        return np.sum(data.exact_target_pathway_signals, axis=1)
+    if kind == "reconstructed":
+        return data.reconstructed_second if order == 2 else data.reconstructed_first
+    raise ValueError("kind must be reference, target, or reconstructed")
 
 
 def build_sector_transport_data(
@@ -430,6 +519,103 @@ def write_correction_rows(handle, rows: list[dict[str, float | str]]) -> None:
         )
 
 
+def write_model_description(
+    output_file: Path,
+    *,
+    command: str,
+    start_wall: datetime,
+    end_wall: datetime,
+    elapsed_seconds: float,
+    args: argparse.Namespace,
+    parameter_map: general.ParameterMap,
+    target_lam: np.ndarray,
+    params0: dict[str, float],
+    params_target: dict[str, float],
+    sector_data: list[SectorTransportData],
+) -> None:
+    output_file.write_text(
+        "\n".join(
+            [
+                "# Exciton Dimer Duhamel Transport Production Run",
+                "",
+                "## Exact Command",
+                "",
+                "```bash",
+                command,
+                "```",
+                "",
+                "## Timing",
+                "",
+                f"- Start: `{start_wall.isoformat()}`",
+                f"- Stop: `{end_wall.isoformat()}`",
+                f"- Elapsed seconds: `{elapsed_seconds:.6f}`",
+                "",
+                "## Model",
+                "",
+                "Four-level exciton dimer basis:",
+                "",
+                "- `|00>`: electronic ground state",
+                "- `|10>` and `|01>`: one-exciton local states",
+                "- `|11>`: double excitation, included for ESA pathways",
+                "",
+                "The transition dipole operator couples the ground state to both one-exciton local states and includes ESA coupling from the one-exciton manifold to the double-excited state.",
+                "",
+                "## Reference And Target Parameters",
+                "",
+                f"- Reference `J_12 = {params0['J_12']:.12e}`",
+                f"- Reference `k_12 = {params0['k_12']:.12e}`",
+                f"- Target lambda: `{np.array2string(target_lam, precision=8)}`",
+                f"- Target physical displacements: `{parameter_map.physical_displacements(target_lam)}`",
+                f"- Target `J_12 = {params_target['J_12']:.12e}`",
+                f"- Target `k_12 = {params_target['k_12']:.12e}`",
+                "",
+                "Control variables are dimensionless displacements about the reference model, with physical parameter values computed as `p(lambda) = p_ref + scale * lambda`.",
+                "",
+                "## Numerical Setup",
+                "",
+                f"- Frequency grid: `{args.n_omega} x {args.n_omega}`",
+                f"- Frequency window: `{args.omega_min:.8f}` to `{args.omega_max:.8f}` eV",
+                f"- Waiting time `tau2`: `{args.tau2:.12e}`",
+                f"- Green's-function broadening `eta`: `{args.eta:.12e}`",
+                f"- Finite-difference derivative step: `{args.fd_step:.12e}`",
+                f"- Transport expansion order used for plotted estimate: `{args.order}`",
+                "",
+                "## Phase Matching",
+                "",
+                "Wave-vector conservation is enforced by constructing independent transport blocks for each phase-matching sector. RP and NRP pathway bases are selected, transported, and expanded separately; their signals are only summed after the sector-level transport calculation.",
+                "",
+                "Sector block sizes:",
+                "",
+                *[
+                    f"- `{data.sector}`: {len(data.pathways)} retained pathways"
+                    for data in sector_data
+                ],
+                "",
+                "## Spectrum Normalization",
+                "",
+                "All saved/plotted spectra are normalized using",
+                "",
+                "```text",
+                "int d omega_1 d omega_3 |S(omega_3, omega_1)|^2 = 1.",
+                "```",
+                "",
+                "For each sector triptych, the reference spectrum is normalized by its own integrated power; the exact target and transported estimate share the exact target sector norm so that their amplitudes are directly comparable.",
+                "",
+                "## Primary Figure Files",
+                "",
+                "- `sector_RP_triptych_real.png` and `sector_RP_triptych_abs.png`",
+                "- `sector_NRP_triptych_real.png` and `sector_NRP_triptych_abs.png`",
+                "- `model_reference_real.png` and `model_reference_abs.png`",
+                "- `model_target_real.png` and `model_target_abs.png`",
+                "- `pathway_target_reconstructed_order*_real.png` and `pathway_target_reconstructed_order*_abs.png`",
+                "",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Dimer Duhamel/transport proof-of-concept demo."
@@ -455,7 +641,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("dimer_duhamel_transport_demo"),
+        default=None,
     )
     return parser.parse_args()
 
@@ -464,7 +650,12 @@ def main() -> None:
     start_wall = datetime.now().astimezone()
     start_perf = time.perf_counter()
     args = parse_args()
+    if args.output_dir is None:
+        stamp = start_wall.strftime("%Y%m%d_%H%M%S")
+        args.output_dir = Path("dimer_duhamel_transport_production") / f"{stamp}_n{args.n_omega}_eta{args.eta:g}"
+    command_line = shlex.join(["python", *sys.argv])
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    log_progress(f"starting run; output directory: {args.output_dir}", start_perf)
 
     model = exciton_dimer_model()
     parameter_map = exciton_dimer_parameter_map(
@@ -476,6 +667,7 @@ def main() -> None:
     omega3_values = np.linspace(args.omega_min, args.omega_max, args.n_omega)
     sectors = tuple(sector.upper() for sector in args.sectors)
 
+    log_progress("computing exact reference model spectrum", start_perf)
     reference_model_signal = commutator_signal_grid(
         model,
         parameter_map,
@@ -485,6 +677,7 @@ def main() -> None:
         tau2=args.tau2,
         eta=args.eta,
     )
+    log_progress("computing exact target model spectrum", start_perf)
     target_model_signal = commutator_signal_grid(
         model,
         parameter_map,
@@ -494,21 +687,25 @@ def main() -> None:
         tau2=args.tau2,
         eta=args.eta,
     )
+    log_progress("finished exact model spectra", start_perf)
 
-    sector_data = [
-        build_sector_transport_data(
-            model,
-            parameter_map,
-            target_lam,
-            omega1_values,
-            omega3_values,
-            sector,
-            tau2=args.tau2,
-            eta=args.eta,
-            fd_step=args.fd_step,
+    sector_data = []
+    for sector in sectors:
+        log_progress(f"building {sector} sector transport data", start_perf)
+        sector_data.append(
+            build_sector_transport_data(
+                model,
+                parameter_map,
+                target_lam,
+                omega1_values,
+                omega3_values,
+                sector,
+                tau2=args.tau2,
+                eta=args.eta,
+                fd_step=args.fd_step,
+            )
         )
-        for sector in sectors
-    ]
+        log_progress(f"finished {sector} sector transport data", start_perf)
     pathways = [pathway for data in sector_data for pathway in data.pathways]
     labels = tuple(pathway.label for pathway in pathways)
     candidate_residuals = np.concatenate([data.candidate_residuals for data in sector_data])
@@ -538,6 +735,7 @@ def main() -> None:
         predicted = evaluate_sector_reconstruction(sector_data, lam, order=args.order)
         return relative_error(exact_target_pathway_signal, predicted) ** 2
 
+    log_progress("starting inverse-fit diagnostic", start_perf)
     fit_result = differential_evolution(
         fit_objective,
         bounds=[(-args.fit_bound, args.fit_bound)] * parameter_map.control_dimension,
@@ -552,7 +750,9 @@ def main() -> None:
     fit_lam = fit_result.x
     fitted_reconstruction = evaluate_sector_reconstruction(sector_data, fit_lam, order=args.order)
     correction_rows = correction_table(parameter_map, target_lam, fit_lam)
+    log_progress("finished inverse-fit diagnostic", start_perf)
 
+    log_progress("computing transport error curve", start_perf)
     scan = np.linspace(0.0, 1.0, 6)
     first_errors = []
     second_errors = []
@@ -582,7 +782,9 @@ def main() -> None:
         )
     first_errors = np.asarray(first_errors)
     second_errors = np.asarray(second_errors)
+    log_progress("finished transport error curve", start_perf)
 
+    log_progress("normalizing spectra", start_perf)
     reference_model_signal_norm, reference_model_power = normalize_to_unit_power(
         reference_model_signal,
         omega1_values,
@@ -623,6 +825,78 @@ def main() -> None:
     )
     residual_signal_norm = selected_reconstruction_norm - exact_target_pathway_signal_norm
 
+    log_progress("writing sector spectra", start_perf)
+    sector_npz_payload = {}
+    for data in sector_data:
+        sector_reference = sector_signal(data, "reference", order=args.order)
+        sector_target = sector_signal(data, "target", order=args.order)
+        sector_reconstructed = sector_signal(data, "reconstructed", order=args.order)
+        sector_reference_norm, sector_reference_power = normalize_to_unit_power(
+            sector_reference,
+            omega1_values,
+            omega3_values,
+        )
+        sector_target_norm, sector_target_power = normalize_to_unit_power(
+            sector_target,
+            omega1_values,
+            omega3_values,
+        )
+        sector_reconstructed_norm, _ = normalize_to_unit_power(
+            sector_reconstructed,
+            omega1_values,
+            omega3_values,
+            norm=sector_target_power,
+        )
+        sector_key = data.sector.lower()
+        sector_npz_payload[f"sector_{sector_key}_reference_signal"] = sector_reference
+        sector_npz_payload[f"sector_{sector_key}_target_signal"] = sector_target
+        sector_npz_payload[f"sector_{sector_key}_reconstructed_signal"] = sector_reconstructed
+        sector_npz_payload[f"sector_{sector_key}_reference_signal_normalized"] = sector_reference_norm
+        sector_npz_payload[f"sector_{sector_key}_target_signal_normalized"] = sector_target_norm
+        sector_npz_payload[f"sector_{sector_key}_reconstructed_signal_normalized"] = sector_reconstructed_norm
+        sector_npz_payload[f"sector_{sector_key}_normalization_powers"] = np.asarray([
+            sector_reference_power,
+            sector_target_power,
+        ])
+
+        for component in ("real", "abs"):
+            plot_sector_spectrum_triptych(
+                omega1_values,
+                omega3_values,
+                sector_reference_norm,
+                sector_target_norm,
+                sector_reconstructed_norm,
+                data.sector,
+                args.output_dir / f"sector_{data.sector}_triptych_{component}.png",
+                component=component,
+                order=args.order,
+            )
+            plot_signal_contours(
+                omega1_values,
+                omega3_values,
+                sector_reference_norm,
+                f"{data.sector} reference",
+                args.output_dir / f"sector_{data.sector}_reference_{component}.png",
+                component=component,
+            )
+            plot_signal_contours(
+                omega1_values,
+                omega3_values,
+                sector_target_norm,
+                f"{data.sector} target",
+                args.output_dir / f"sector_{data.sector}_target_{component}.png",
+                component=component,
+            )
+            plot_signal_contours(
+                omega1_values,
+                omega3_values,
+                sector_reconstructed_norm,
+                f"{data.sector} transported estimate, order {args.order}",
+                args.output_dir / f"sector_{data.sector}_distorted_estimate_order{args.order}_{component}.png",
+                component=component,
+            )
+
+    log_progress("writing combined spectra", start_perf)
     for component in ("real", "abs"):
         plot_signal_contours(
             omega1_values,
@@ -701,12 +975,14 @@ def main() -> None:
         second_errors,
         args.output_dir / "transport_error_curve.png",
     )
+    log_progress("finished plots", start_perf)
 
     params0 = parameter_map.params(parameter_map.zero())
     params_target = parameter_map.params(target_lam)
     T0_block = block_diag([data.expansion.T0 for data in sector_data])
     end_wall = datetime.now().astimezone()
     elapsed_seconds = time.perf_counter() - start_perf
+    log_progress("writing summary and data archive", start_perf)
     summary_file = args.output_dir / "demo_summary.txt"
     with summary_file.open("w", encoding="utf-8") as handle:
         handle.write("Dimer Duhamel/transport proof of concept\n")
@@ -725,6 +1001,8 @@ def main() -> None:
 
         handle.write("Numerical setup\n")
         handle.write("-" * 72 + "\n")
+        handle.write(f"command: {command_line}\n")
+        handle.write(f"output directory: {args.output_dir}\n")
         handle.write(f"start time: {start_wall.isoformat()}\n")
         handle.write(f"stop time: {end_wall.isoformat()}\n")
         handle.write(f"elapsed seconds: {elapsed_seconds:.6f}\n")
@@ -815,6 +1093,20 @@ def main() -> None:
         for index, label in enumerate(labels):
             handle.write(f"{index:2d}: {label}\n")
 
+    write_model_description(
+        args.output_dir / "model_description.md",
+        command=command_line,
+        start_wall=start_wall,
+        end_wall=end_wall,
+        elapsed_seconds=elapsed_seconds,
+        args=args,
+        parameter_map=parameter_map,
+        target_lam=target_lam,
+        params0=params0,
+        params_target=params_target,
+        sector_data=sector_data,
+    )
+
     np.savez_compressed(
         args.output_dir / "demo_dimer_duhamel_transport.npz",
         omega1_values=omega1_values,
@@ -889,6 +1181,8 @@ def main() -> None:
         start_time=np.asarray(start_wall.isoformat(), dtype=str),
         stop_time=np.asarray(end_wall.isoformat(), dtype=str),
         elapsed_seconds=np.asarray(elapsed_seconds),
+        command=np.asarray(command_line, dtype=str),
+        **sector_npz_payload,
     )
 
     print("Dimer Duhamel/transport proof of concept")

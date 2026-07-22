@@ -201,6 +201,13 @@ workflow and output are the intended validation target:
 - transport-matrix heat maps;
 - an error curve along the target lambda direction.
 
+First- and second-derivative finite-difference steps are intentionally separate.
+The first derivative uses `--fd-step` and defaults to `5e-5`. The curvature
+terms use `--fd-second-step` and default to `1e-2`; this avoids the severe
+`1 / h^2` noise amplification that appears when second derivatives are formed
+with an overly small step. Pure second derivatives use a five-point stencil,
+while mixed derivatives use the centered four-corner stencil.
+
 Spectrum plots are written for the real, imaginary, and absolute-value
 components. The `sector_RP_*` and `sector_NRP_*` reference/target plots are
 direct phase-matched spectra summed over all canonical pathways in that sector.
@@ -256,9 +263,19 @@ The report separates these ideas explicitly:
 - `Transport reconstruction diagnostics at injected target lambda`: the
   reconstruction errors evaluated at the known injected target.
 - `Numerical setup`: start time, stop time, elapsed time, frequency window,
-  finite `eta`, and phase-matching sector settings.
+  finite `eta`, finite-difference steps, and phase-matching sector settings.
 - `Spectral normalization`: raw integrated powers used to normalize the saved
   spectra.
+
+The demo also writes both the Taylor-expanded transport matrix and the exact
+projected transport matrix at the target lambda. Use
+`transport_matrix_order*_abs.png` and
+`transport_matrix_exact_projected_abs.png` together when checking whether the
+transport expansion is physically reasonable. The summary reports
+`||T_order|| / ||T_exact_projected||` and
+`max|T_order| / max|T_exact_projected|`; values much larger than one usually
+mean the derivative stencil is numerically unstable rather than that the
+Liouvillian deformation is truly enormous.
 
 ## Diagnostics
 

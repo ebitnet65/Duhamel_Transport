@@ -477,6 +477,7 @@ def build_sector_transport_data(
     tau2: float,
     eta: float,
     fd_step: float,
+    fd_second_step: float,
 ) -> SectorTransportData:
     candidates = general.canonical_pathways((sector,))
     pathways, candidate_residuals = general.independent_canonical_pathways(
@@ -518,6 +519,7 @@ def build_sector_transport_data(
         tau2=tau2,
         eta=eta,
         step=fd_step,
+        second_step=fd_second_step,
         rcond=1e-11,
     )
     T_exact = exact_transport_matrix_2d(
@@ -705,7 +707,8 @@ def write_model_description(
                 f"- Frequency window: `{args.omega_min:.8f}` to `{args.omega_max:.8f}` eV",
                 f"- Waiting time `tau2`: `{args.tau2:.12e}`",
                 f"- Green's-function broadening `eta`: `{args.eta:.12e}`",
-                f"- Finite-difference derivative step: `{args.fd_step:.12e}`",
+                f"- First-derivative finite-difference step: `{args.fd_step:.12e}`",
+                f"- Second-derivative finite-difference step: `{args.fd_second_step:.12e}`",
                 f"- Transport expansion order used for plotted estimate: `{args.order}`",
                 f"- Clean reference dimer: `{args.clean_reference_dimer}`",
                 f"- Clean reference ESA scale: `{args.clean_mu_esa_scale:.12e}`",
@@ -740,6 +743,7 @@ def write_model_description(
                 "- `model_reference_real.png`, `model_reference_imag.png`, and `model_reference_abs.png`",
                 "- `model_target_real.png`, `model_target_imag.png`, and `model_target_abs.png`",
                 "- `pathway_target_reconstructed_order*_real.png`, `pathway_target_reconstructed_order*_imag.png`, and `pathway_target_reconstructed_order*_abs.png`",
+                "- `transport_matrix_exact_projected_abs.png` and `transport_matrix_order*_abs.png`",
                 "",
             ]
         )
@@ -758,6 +762,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tau2", type=float, default=1.0)
     parser.add_argument("--eta", type=float, default=3e-3)
     parser.add_argument("--fd-step", type=float, default=5e-5)
+    parser.add_argument(
+        "--fd-second-step",
+        type=float,
+        default=1e-2,
+        help=(
+            "Finite-difference step for second transport derivatives. "
+            "This is intentionally larger than --fd-step to avoid 1/h^2 "
+            "projection-noise amplification."
+        ),
+    )
     parser.add_argument("--lambda-J", type=float, default=-0.25)
     parser.add_argument("--lambda-k", type=float, default=0.25)
     parser.add_argument("--delta-J", type=float, default=0.045)
@@ -858,6 +872,7 @@ def main() -> None:
                 tau2=args.tau2,
                 eta=args.eta,
                 fd_step=args.fd_step,
+                fd_second_step=args.fd_second_step,
             )
         )
         log_progress(f"finished {sector} sector transport data", start_perf)
@@ -1164,6 +1179,20 @@ def main() -> None:
         args.output_dir / f"transport_matrix_order{args.order}_real.png",
         component="real",
     )
+    plot_transport_matrix(
+        T_exact,
+        labels,
+        "Exact projected transport matrix",
+        args.output_dir / "transport_matrix_exact_projected_abs.png",
+        component="abs",
+    )
+    plot_transport_matrix(
+        T_exact,
+        labels,
+        "Exact projected transport matrix",
+        args.output_dir / "transport_matrix_exact_projected_real.png",
+        component="real",
+    )
     plot_error_curve(
         scan,
         first_errors,
@@ -1175,6 +1204,8 @@ def main() -> None:
     params0 = parameter_map.params(parameter_map.zero())
     params_target = parameter_map.params(target_lam)
     T0_block = block_diag([data.expansion.T0 for data in sector_data])
+    transport_norm_ratio = np.linalg.norm(T_target) / max(np.linalg.norm(T_exact), 1e-14)
+    transport_max_ratio = np.max(np.abs(T_target)) / max(np.max(np.abs(T_exact)), 1e-14)
     end_wall = datetime.now().astimezone()
     elapsed_seconds = time.perf_counter() - start_perf
     log_progress("writing summary and data archive", start_perf)
@@ -1206,7 +1237,9 @@ def main() -> None:
         handle.write("wave-vector conservation: enforced by independent sector blocks\n")
         handle.write(f"n_omega: {args.n_omega}\n")
         handle.write(f"omega window: {args.omega_min:.8f} to {args.omega_max:.8f} eV\n")
-        handle.write(f"eta: {args.eta:.12e}\n\n")
+        handle.write(f"eta: {args.eta:.12e}\n")
+        handle.write(f"first-derivative finite-difference step: {args.fd_step:.12e}\n")
+        handle.write(f"second-derivative finite-difference step: {args.fd_second_step:.12e}\n\n")
 
         handle.write("Reference-model option\n")
         handle.write("-" * 72 + "\n")
@@ -1292,6 +1325,10 @@ def main() -> None:
         handle.write(f"number of retained pathways: {len(pathways)}\n")
         handle.write(f"candidate residual max: {np.max(candidate_residuals):.12e}\n")
         handle.write(f"||T0-I||, block diagonal sectors: {np.linalg.norm(T0_block - np.eye(len(pathways))):.12e}\n")
+        handle.write(f"||T_order{args.order}|| / ||T_exact_projected||: {transport_norm_ratio:.12e}\n")
+        handle.write(f"max|T_order{args.order}| / max|T_exact_projected|: {transport_max_ratio:.12e}\n")
+        if transport_norm_ratio > 10.0:
+            handle.write("WARNING: evaluated transport expansion norm is much larger than exact projected transport.\n")
         handle.write("sector block sizes\n")
         for data in sector_data:
             handle.write(
@@ -1412,6 +1449,10 @@ def main() -> None:
         stop_time=np.asarray(end_wall.isoformat(), dtype=str),
         elapsed_seconds=np.asarray(elapsed_seconds),
         command=np.asarray(command_line, dtype=str),
+        fd_step=np.asarray(args.fd_step),
+        fd_second_step=np.asarray(args.fd_second_step),
+        transport_norm_ratio=np.asarray(transport_norm_ratio),
+        transport_max_ratio=np.asarray(transport_max_ratio),
         clean_reference_dimer=np.asarray(args.clean_reference_dimer),
         clean_gamma=np.asarray(args.clean_gamma),
         clean_gamma_phi=np.asarray(args.clean_gamma_phi),

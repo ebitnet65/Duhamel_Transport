@@ -171,12 +171,14 @@ def finite_difference_transport_expansion_2d(
     tau2: float,
     eta: float,
     step: float,
+    second_step: float | None = None,
     rcond: float,
 ) -> TransportDerivativeExpansion:
     """Build a second-order T(lambda) expansion on a full 2D grid."""
 
     n_controls = parameter_map.control_dimension
     zero = parameter_map.zero()
+    second_step = step if second_step is None else second_step
     P0 = pathway_state_grid_matrix(
         model,
         parameter_map,
@@ -222,9 +224,53 @@ def finite_difference_transport_expansion_2d(
             (Pp - Pm) / (2.0 * step),
             rcond=rcond,
         )
+
+        second_direction = np.zeros(n_controls)
+        second_direction[mu] = second_step
+        Pp2 = pathway_state_grid_matrix(
+            model,
+            parameter_map,
+            zero + 2.0 * second_direction,
+            omega1_values,
+            omega3_values,
+            pathways,
+            tau2=tau2,
+            eta=eta,
+        )
+        Pp1 = pathway_state_grid_matrix(
+            model,
+            parameter_map,
+            zero + second_direction,
+            omega1_values,
+            omega3_values,
+            pathways,
+            tau2=tau2,
+            eta=eta,
+        )
+        Pm1 = pathway_state_grid_matrix(
+            model,
+            parameter_map,
+            zero - second_direction,
+            omega1_values,
+            omega3_values,
+            pathways,
+            tau2=tau2,
+            eta=eta,
+        )
+        Pm2 = pathway_state_grid_matrix(
+            model,
+            parameter_map,
+            zero - 2.0 * second_direction,
+            omega1_values,
+            omega3_values,
+            pathways,
+            tau2=tau2,
+            eta=eta,
+        )
         second[(mu, mu)], second_residuals[(mu, mu)] = project_transport_derivative(
             P0,
-            (Pp - 2.0 * P0 + Pm) / (step * step),
+            (-Pp2 + 16.0 * Pp1 - 30.0 * P0 + 16.0 * Pm1 - Pm2)
+            / (12.0 * second_step * second_step),
             rcond=rcond,
         )
 
@@ -232,8 +278,8 @@ def finite_difference_transport_expansion_2d(
         for nu in range(mu + 1, n_controls):
             emu = np.zeros(n_controls)
             enu = np.zeros(n_controls)
-            emu[mu] = step
-            enu[nu] = step
+            emu[mu] = second_step
+            enu[nu] = second_step
             matrices = []
             for lam in (
                 zero + emu + enu,
@@ -254,7 +300,7 @@ def finite_difference_transport_expansion_2d(
                     )
                 )
             mixed = (matrices[0] - matrices[1] - matrices[2] + matrices[3]) / (
-                4.0 * step * step
+                4.0 * second_step * second_step
             )
             second[(mu, nu)], second_residuals[(mu, nu)] = project_transport_derivative(
                 P0,
@@ -357,6 +403,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tau2", type=float, default=1.0)
     parser.add_argument("--eta", type=float, default=2e-3)
     parser.add_argument("--fd-step", type=float, default=5e-5)
+    parser.add_argument("--fd-second-step", type=float, default=1e-2)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--target-radius", type=float, default=0.35)
     parser.add_argument("--fit-bound", type=float, default=0.8)
@@ -449,6 +496,7 @@ def main() -> None:
         tau2=args.tau2,
         eta=args.eta,
         step=args.fd_step,
+        second_step=args.fd_second_step,
         rcond=1e-12,
     )
 

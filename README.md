@@ -23,6 +23,12 @@ pathway components deform under the rotated dephasing Liouvillian.
   control variables.
 - `Liouville_transport_expansion.py`: derivative expansion of the pathway
   transport matrix `T(lambda)` around the reference model.
+- `Liouville_autodiff.py`: optional JAX backend for Liouvillian connection
+  tensors `L`, `partial_mu L`, and `partial_mu partial_nu L` with the same
+  dictionary convention as the finite-difference backend.
+- `Liouville_duhamel.py`: Duhamel building blocks that convert Liouvillian
+  derivative tensors into resolvent and waiting-time propagator derivative
+  expansions.
 - `exciton_dimer_model.py`: four-level site-basis exciton dimer model with
   `|00>`, `|10>`, `|01>`, and `|11>` states, including optional ESA dipoles.
 - `fit_v_system_transport_signal.py`: proof-of-concept inverse fit that
@@ -333,6 +339,48 @@ first and second derivatives with respect to selected controls. It is intended
 as the reference backend before adding autodiff. These derivatives are with
 respect to dimensionless lambda coordinates at the best-guess model, not
 necessarily raw physical parameters.
+
+`Liouville_autodiff.py` now provides the first optional autodiff backend for
+the same object. The user supplies a JAX-compatible Liouvillian function,
+usually written as `L(params)` with `jax.numpy` operations, and the module
+returns a derivative dictionary with the same keys:
+
+```python
+derivatives = jax_liouvillian_derivatives(
+    L_from_params,
+    parameter_map,
+    liouville_dimension=model.liouville_dimension,
+)
+
+L0 = derivatives[()]
+dL_dlambda_J = derivatives[(0,)]
+d2L_dlambda_J_dlambda_k = derivatives[(0, 1)]
+```
+
+The backend differentiates with respect to dimensionless lambda coordinates,
+so `ControlSpec.scale` is included automatically through
+`p(lambda) = p_ref + scale * lambda`. This means `derivatives[(mu,)]` is the
+connection term `partial L / partial lambda_mu`, not the raw derivative with
+respect to the physical parameter. JAX is optional: importing the repository
+does not require it, but calling the autodiff backend does.
+
+`Liouville_duhamel.py` is the next layer down in the expansion. Given the
+Liouvillian derivative dictionary, it constructs operator-valued Taylor data for
+the pieces that appear inside every response pathway:
+
+```python
+G1 = resolvent_derivative_expansion(derivatives, omega=omega1, eta=eta)
+U2 = propagator_duhamel_expansion(derivatives, tau=tau2)
+
+G1_at_lambda = G1.evaluate(lambda_vec, order=2)
+U2_at_lambda = U2.evaluate(lambda_vec, order=2)
+```
+
+The resolvent derivatives are algebraic insertions such as
+`G_mu = G L_mu G`. The propagator derivatives use explicit Duhamel integrals,
+with Gauss-Legendre quadrature as a transparent reference implementation. This
+is not yet wired into the full pathway transport reconstruction; it is the
+tested core needed for that next step.
 
 `Liouville_transport_expansion.py` projects pathway-state derivatives onto the
 reference pathway basis to build

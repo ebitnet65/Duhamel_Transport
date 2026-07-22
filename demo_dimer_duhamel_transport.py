@@ -335,6 +335,40 @@ def block_diag(matrices: list[np.ndarray]) -> np.ndarray:
     return out
 
 
+def dimer_parameter_map_from_args(args: argparse.Namespace) -> general.ParameterMap:
+    reference_params = dict(exciton_dimer_parameter_map().reference_params)
+    if args.clean_reference_dimer:
+        reference_params.update(
+            {
+                "J_12": 0.0,
+                "k_12": 0.0,
+                "anharmonicity": 0.0,
+                "gamma_1": args.clean_gamma,
+                "gamma_2": args.clean_gamma,
+                "gamma_phi_1": args.clean_gamma_phi,
+                "gamma_phi_2": args.clean_gamma_phi,
+                "mu_1": 1.0,
+                "mu_2": 1.0,
+                "mu_esa_scale": args.clean_mu_esa_scale,
+            }
+        )
+    return general.ParameterMap(
+        reference_params=reference_params,
+        controls=(
+            general.ControlSpec(
+                "J_12",
+                reference_value=reference_params["J_12"],
+                scale=args.delta_J,
+            ),
+            general.ControlSpec(
+                "k_12",
+                reference_value=reference_params["k_12"],
+                scale=args.delta_k,
+            ),
+        ),
+    )
+
+
 def integrated_power(signal: np.ndarray, omega1_values: np.ndarray, omega3_values: np.ndarray) -> float:
     grid = np.abs(signal.reshape(len(omega3_values), len(omega1_values))) ** 2
     inner = np.trapezoid(grid, omega1_values, axis=1)
@@ -351,6 +385,46 @@ def normalize_to_unit_power(
     power = integrated_power(signal, omega1_values, omega3_values) if norm is None else norm
     scale = np.sqrt(max(power, 1e-300))
     return signal / scale, power
+
+
+def window_peak(
+    signal: np.ndarray,
+    omega1_values: np.ndarray,
+    omega3_values: np.ndarray,
+    omega1_center: float,
+    omega3_center: float,
+    *,
+    half_width: float,
+) -> float:
+    grid = np.abs(signal.reshape(len(omega3_values), len(omega1_values)))
+    mask1 = np.abs(omega1_values - omega1_center) <= half_width
+    mask3 = np.abs(omega3_values - omega3_center) <= half_width
+    if not np.any(mask1) or not np.any(mask3):
+        return 0.0
+    return float(np.max(grid[np.ix_(mask3, mask1)]))
+
+
+def diagonal_cross_peak_summary(
+    signal: np.ndarray,
+    omega1_values: np.ndarray,
+    omega3_values: np.ndarray,
+    centers: tuple[float, float],
+    *,
+    half_width: float = 0.025,
+) -> dict[str, float]:
+    lower, upper = centers
+    peaks = {
+        "LL": window_peak(signal, omega1_values, omega3_values, lower, lower, half_width=half_width),
+        "LU": window_peak(signal, omega1_values, omega3_values, lower, upper, half_width=half_width),
+        "UL": window_peak(signal, omega1_values, omega3_values, upper, lower, half_width=half_width),
+        "UU": window_peak(signal, omega1_values, omega3_values, upper, upper, half_width=half_width),
+    }
+    peaks["max_cross_over_max_diag"] = max(peaks["LU"], peaks["UL"]) / max(
+        peaks["LL"],
+        peaks["UU"],
+        1e-14,
+    )
+    return peaks
 
 
 def sector_signal(data: SectorTransportData, kind: str, *, order: int) -> np.ndarray:
@@ -633,6 +707,8 @@ def write_model_description(
                 f"- Green's-function broadening `eta`: `{args.eta:.12e}`",
                 f"- Finite-difference derivative step: `{args.fd_step:.12e}`",
                 f"- Transport expansion order used for plotted estimate: `{args.order}`",
+                f"- Clean reference dimer: `{args.clean_reference_dimer}`",
+                f"- Clean reference ESA scale: `{args.clean_mu_esa_scale:.12e}`",
                 "",
                 "## Phase Matching",
                 "",
@@ -686,6 +762,32 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lambda-k", type=float, default=0.25)
     parser.add_argument("--delta-J", type=float, default=0.045)
     parser.add_argument("--delta-k", type=float, default=0.012)
+    parser.add_argument(
+        "--clean-reference-dimer",
+        action="store_true",
+        help=(
+            "Use an uncoupled symmetric reference: J_12=0, k_12=0, "
+            "anharmonicity=0, equal site dipoles, and equal linewidths."
+        ),
+    )
+    parser.add_argument(
+        "--clean-gamma",
+        type=float,
+        default=0.01,
+        help="Population relaxation rate used for both sites in clean-reference mode.",
+    )
+    parser.add_argument(
+        "--clean-gamma-phi",
+        type=float,
+        default=0.01,
+        help="Pure dephasing rate used for both sites in clean-reference mode.",
+    )
+    parser.add_argument(
+        "--clean-mu-esa-scale",
+        type=float,
+        default=1.0,
+        help="ESA dipole scale used in clean-reference mode.",
+    )
     parser.add_argument("--fit-bound", type=float, default=0.8)
     parser.add_argument("--order", type=int, choices=(1, 2), default=2)
     parser.add_argument(
@@ -714,10 +816,7 @@ def main() -> None:
     log_progress(f"starting run; output directory: {args.output_dir}", start_perf)
 
     model = exciton_dimer_model()
-    parameter_map = exciton_dimer_parameter_map(
-        general.ControlSpec("J_12", reference_value=0.0, scale=args.delta_J),
-        general.ControlSpec("k_12", reference_value=0.006, scale=args.delta_k),
-    )
+    parameter_map = dimer_parameter_map_from_args(args)
     target_lam = np.array([args.lambda_J, args.lambda_k], dtype=float)
     omega1_values = np.linspace(args.omega_min, args.omega_max, args.n_omega)
     omega3_values = np.linspace(args.omega_min, args.omega_max, args.n_omega)
@@ -883,6 +982,7 @@ def main() -> None:
 
     log_progress("writing sector spectra", start_perf)
     sector_npz_payload = {}
+    direct_reference_sector_signal = np.zeros_like(reference_pathway_signal)
     for data in sector_data:
         log_progress(f"computing direct {data.sector} sector spectra", start_perf)
         sector_reference_retained = sector_signal(data, "reference", order=args.order)
@@ -907,6 +1007,7 @@ def main() -> None:
             tau2=args.tau2,
             eta=args.eta,
         )
+        direct_reference_sector_signal += sector_reference
         sector_reconstructed = sector_signal(data, "reconstructed", order=args.order)
         sector_reference_norm, sector_reference_power = normalize_to_unit_power(
             sector_reference,
@@ -978,6 +1079,17 @@ def main() -> None:
                 args.output_dir / f"sector_{data.sector}_distorted_estimate_order{args.order}_{component}.png",
                 component=component,
             )
+
+    reference_centers = (
+        float(parameter_map.reference_params["omega_1"]),
+        float(parameter_map.reference_params["omega_2"]),
+    )
+    reference_sector_peak_summary = diagonal_cross_peak_summary(
+        direct_reference_sector_signal,
+        omega1_values,
+        omega3_values,
+        reference_centers,
+    )
 
     log_progress("writing combined spectra", start_perf)
     for component in SPECTRUM_COMPONENTS:
@@ -1096,6 +1208,16 @@ def main() -> None:
         handle.write(f"omega window: {args.omega_min:.8f} to {args.omega_max:.8f} eV\n")
         handle.write(f"eta: {args.eta:.12e}\n\n")
 
+        handle.write("Reference-model option\n")
+        handle.write("-" * 72 + "\n")
+        handle.write(f"clean reference dimer: {args.clean_reference_dimer}\n")
+        if args.clean_reference_dimer:
+            handle.write("clean reference constraints: J_12=0, k_12=0, anharmonicity=0, mu_1=mu_2=1\n")
+            handle.write(f"clean gamma_1=gamma_2: {args.clean_gamma:.12e}\n")
+            handle.write(f"clean gamma_phi_1=gamma_phi_2: {args.clean_gamma_phi:.12e}\n")
+            handle.write(f"clean mu_esa_scale: {args.clean_mu_esa_scale:.12e}\n")
+        handle.write("\n")
+
         handle.write("Sector spectra\n")
         handle.write("-" * 72 + "\n")
         handle.write(
@@ -1125,6 +1247,19 @@ def main() -> None:
         handle.write("lambda_reference = [0, 0]\n")
         handle.write(f"reference params J_12={params0['J_12']:.12e}, k_12={params0['k_12']:.12e}\n")
         handle.write("J_12 is zero in the reference model by construction.\n\n")
+
+        handle.write("Reference sector diagonal/cross-peak diagnostic\n")
+        handle.write("-" * 72 + "\n")
+        handle.write(
+            "Computed from direct RP+NRP reference sector spectra using |S| "
+            "window maxima around omega_1 and omega_2.\n"
+        )
+        handle.write(
+            f"window centers: {reference_centers[0]:.12e}, {reference_centers[1]:.12e}\n"
+        )
+        for key in ("LL", "LU", "UL", "UU", "max_cross_over_max_diag"):
+            handle.write(f"{key:24s} {reference_sector_peak_summary[key]:.12e}\n")
+        handle.write("\n")
 
         handle.write("Injected target corrections used to generate target spectra\n")
         handle.write("-" * 72 + "\n")
@@ -1277,6 +1412,24 @@ def main() -> None:
         stop_time=np.asarray(end_wall.isoformat(), dtype=str),
         elapsed_seconds=np.asarray(elapsed_seconds),
         command=np.asarray(command_line, dtype=str),
+        clean_reference_dimer=np.asarray(args.clean_reference_dimer),
+        clean_gamma=np.asarray(args.clean_gamma),
+        clean_gamma_phi=np.asarray(args.clean_gamma_phi),
+        clean_mu_esa_scale=np.asarray(args.clean_mu_esa_scale),
+        reference_sector_peak_summary=np.asarray([
+            reference_sector_peak_summary["LL"],
+            reference_sector_peak_summary["LU"],
+            reference_sector_peak_summary["UL"],
+            reference_sector_peak_summary["UU"],
+            reference_sector_peak_summary["max_cross_over_max_diag"],
+        ]),
+        reference_sector_peak_summary_labels=np.asarray([
+            "LL",
+            "LU",
+            "UL",
+            "UU",
+            "max_cross_over_max_diag",
+        ], dtype=str),
         **sector_npz_payload,
     )
 

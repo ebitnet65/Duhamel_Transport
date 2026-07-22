@@ -22,6 +22,9 @@ from __future__ import annotations
 from pathlib import Path
 import argparse
 import os
+import time
+from dataclasses import dataclass
+from datetime import datetime
 
 import numpy as np
 from scipy.optimize import differential_evolution
@@ -40,6 +43,20 @@ from fit_v_system_transport_signal import (
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-duhamel-transport")
 import matplotlib.pyplot as plt
+
+
+@dataclass(frozen=True)
+class SectorTransportData:
+    sector: str
+    pathways: list[general.CanonicalPathway]
+    candidate_residuals: np.ndarray
+    reference_pathway_signals: np.ndarray
+    exact_target_pathway_signals: np.ndarray
+    expansion: object
+    T_exact: np.ndarray
+    reconstructed_first: np.ndarray
+    reconstructed_second: np.ndarray
+    exact_projected_transport_signal: np.ndarray
 
 
 def plot_transport_matrix(
@@ -199,6 +216,172 @@ def transported_signal_from_matrix(reference_pathway_signals: np.ndarray, T: np.
     return reference_pathway_signals @ pathway_weights
 
 
+def block_diag(matrices: list[np.ndarray]) -> np.ndarray:
+    rows = sum(matrix.shape[0] for matrix in matrices)
+    cols = sum(matrix.shape[1] for matrix in matrices)
+    out = np.zeros((rows, cols), dtype=complex)
+    row0 = 0
+    col0 = 0
+    for matrix in matrices:
+        row1 = row0 + matrix.shape[0]
+        col1 = col0 + matrix.shape[1]
+        out[row0:row1, col0:col1] = matrix
+        row0 = row1
+        col0 = col1
+    return out
+
+
+def integrated_power(signal: np.ndarray, omega1_values: np.ndarray, omega3_values: np.ndarray) -> float:
+    grid = np.abs(signal.reshape(len(omega3_values), len(omega1_values))) ** 2
+    inner = np.trapezoid(grid, omega1_values, axis=1)
+    return float(np.trapezoid(inner, omega3_values))
+
+
+def normalize_to_unit_power(
+    signal: np.ndarray,
+    omega1_values: np.ndarray,
+    omega3_values: np.ndarray,
+    *,
+    norm: float | None = None,
+) -> tuple[np.ndarray, float]:
+    power = integrated_power(signal, omega1_values, omega3_values) if norm is None else norm
+    scale = np.sqrt(max(power, 1e-300))
+    return signal / scale, power
+
+
+def build_sector_transport_data(
+    model: general.LiouvilleModel,
+    parameter_map: general.ParameterMap,
+    target_lam: np.ndarray,
+    omega1_values: np.ndarray,
+    omega3_values: np.ndarray,
+    sector: str,
+    *,
+    tau2: float,
+    eta: float,
+    fd_step: float,
+) -> SectorTransportData:
+    candidates = general.canonical_pathways((sector,))
+    pathways, candidate_residuals = general.independent_canonical_pathways(
+        model,
+        parameter_map,
+        omega1_values,
+        candidates,
+        stage="after_G3",
+        tau2=tau2,
+        eta=eta,
+        rtol=1e-9,
+    )
+    reference_pathway_signals = pathway_signal_grid(
+        model,
+        parameter_map,
+        parameter_map.zero(),
+        omega1_values,
+        omega3_values,
+        pathways,
+        tau2=tau2,
+        eta=eta,
+    )
+    exact_target_pathway_signals = pathway_signal_grid(
+        model,
+        parameter_map,
+        target_lam,
+        omega1_values,
+        omega3_values,
+        pathways,
+        tau2=tau2,
+        eta=eta,
+    )
+    expansion = finite_difference_transport_expansion_2d(
+        model,
+        parameter_map,
+        omega1_values,
+        omega3_values,
+        pathways,
+        tau2=tau2,
+        eta=eta,
+        step=fd_step,
+        rcond=1e-11,
+    )
+    T_exact = exact_transport_matrix_2d(
+        model,
+        parameter_map,
+        target_lam,
+        omega1_values,
+        omega3_values,
+        pathways,
+        tau2=tau2,
+        eta=eta,
+        rcond=1e-11,
+    )
+    return SectorTransportData(
+        sector=sector,
+        pathways=pathways,
+        candidate_residuals=candidate_residuals,
+        reference_pathway_signals=reference_pathway_signals,
+        exact_target_pathway_signals=exact_target_pathway_signals,
+        expansion=expansion,
+        T_exact=T_exact,
+        reconstructed_first=transported_signal(
+            reference_pathway_signals,
+            expansion,
+            target_lam,
+            order=1,
+        ),
+        reconstructed_second=transported_signal(
+            reference_pathway_signals,
+            expansion,
+            target_lam,
+            order=2,
+        ),
+        exact_projected_transport_signal=transported_signal_from_matrix(
+            reference_pathway_signals,
+            T_exact,
+        ),
+    )
+
+
+def evaluate_sector_reconstruction(
+    sector_data: list[SectorTransportData],
+    lam: np.ndarray,
+    *,
+    order: int,
+) -> np.ndarray:
+    return sum(
+        transported_signal(data.reference_pathway_signals, data.expansion, lam, order=order)
+        for data in sector_data
+    )
+
+
+def exact_sector_pathway_signal(
+    model: general.LiouvilleModel,
+    parameter_map: general.ParameterMap,
+    lam: np.ndarray,
+    omega1_values: np.ndarray,
+    omega3_values: np.ndarray,
+    sector_data: list[SectorTransportData],
+    *,
+    tau2: float,
+    eta: float,
+) -> np.ndarray:
+    total = np.zeros(len(omega1_values) * len(omega3_values), dtype=complex)
+    for data in sector_data:
+        total += np.sum(
+            pathway_signal_grid(
+                model,
+                parameter_map,
+                lam,
+                omega1_values,
+                omega3_values,
+                data.pathways,
+                tau2=tau2,
+                eta=eta,
+            ),
+            axis=1,
+        )
+    return total
+
+
 def correction_table(
     parameter_map: general.ParameterMap,
     input_lam: np.ndarray,
@@ -278,6 +461,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    start_wall = datetime.now().astimezone()
+    start_perf = time.perf_counter()
     args = parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -290,41 +475,6 @@ def main() -> None:
     omega1_values = np.linspace(args.omega_min, args.omega_max, args.n_omega)
     omega3_values = np.linspace(args.omega_min, args.omega_max, args.n_omega)
     sectors = tuple(sector.upper() for sector in args.sectors)
-
-    candidates = general.canonical_pathways(sectors)
-    pathways, candidate_residuals = general.independent_canonical_pathways(
-        model,
-        parameter_map,
-        omega1_values,
-        candidates,
-        stage="after_G3",
-        tau2=args.tau2,
-        eta=args.eta,
-        rtol=1e-9,
-    )
-
-    reference_pathway_signals = pathway_signal_grid(
-        model,
-        parameter_map,
-        parameter_map.zero(),
-        omega1_values,
-        omega3_values,
-        pathways,
-        tau2=args.tau2,
-        eta=args.eta,
-    )
-    exact_target_pathway_signals = pathway_signal_grid(
-        model,
-        parameter_map,
-        target_lam,
-        omega1_values,
-        omega3_values,
-        pathways,
-        tau2=args.tau2,
-        eta=args.eta,
-    )
-    reference_pathway_signal = np.sum(reference_pathway_signals, axis=1)
-    exact_target_pathway_signal = np.sum(exact_target_pathway_signals, axis=1)
 
     reference_model_signal = commutator_signal_grid(
         model,
@@ -345,55 +495,47 @@ def main() -> None:
         eta=args.eta,
     )
 
-    expansion = finite_difference_transport_expansion_2d(
-        model,
-        parameter_map,
-        omega1_values,
-        omega3_values,
-        pathways,
-        tau2=args.tau2,
-        eta=args.eta,
-        step=args.fd_step,
-        rcond=1e-11,
+    sector_data = [
+        build_sector_transport_data(
+            model,
+            parameter_map,
+            target_lam,
+            omega1_values,
+            omega3_values,
+            sector,
+            tau2=args.tau2,
+            eta=args.eta,
+            fd_step=args.fd_step,
+        )
+        for sector in sectors
+    ]
+    pathways = [pathway for data in sector_data for pathway in data.pathways]
+    labels = tuple(pathway.label for pathway in pathways)
+    candidate_residuals = np.concatenate([data.candidate_residuals for data in sector_data])
+    reference_pathway_signal = sum(
+        np.sum(data.reference_pathway_signals, axis=1)
+        for data in sector_data
     )
-    reconstructed_first = transported_signal(
-        reference_pathway_signals,
-        expansion,
-        target_lam,
-        order=1,
+    exact_target_pathway_signal = sum(
+        np.sum(data.exact_target_pathway_signals, axis=1)
+        for data in sector_data
     )
-    reconstructed_second = transported_signal(
-        reference_pathway_signals,
-        expansion,
-        target_lam,
-        order=2,
-    )
+    reconstructed_first = sum(data.reconstructed_first for data in sector_data)
+    reconstructed_second = sum(data.reconstructed_second for data in sector_data)
     selected_reconstruction = reconstructed_second if args.order == 2 else reconstructed_first
-    T_exact = exact_transport_matrix_2d(
-        model,
-        parameter_map,
-        target_lam,
-        omega1_values,
-        omega3_values,
-        pathways,
-        tau2=args.tau2,
-        eta=args.eta,
-        rcond=1e-11,
-    )
-    exact_projected_transport_signal = transported_signal_from_matrix(
-        reference_pathway_signals,
-        T_exact,
+    exact_projected_transport_signal = sum(
+        data.exact_projected_transport_signal
+        for data in sector_data
     )
     residual_signal = selected_reconstruction - exact_target_pathway_signal
-    T_target = expansion.evaluate(target_lam, order=args.order)
+    T_exact = block_diag([data.T_exact for data in sector_data])
+    T_target = block_diag([
+        data.expansion.evaluate(target_lam, order=args.order)
+        for data in sector_data
+    ])
 
     def fit_objective(lam: np.ndarray) -> float:
-        predicted = transported_signal(
-            reference_pathway_signals,
-            expansion,
-            lam,
-            order=args.order,
-        )
+        predicted = evaluate_sector_reconstruction(sector_data, lam, order=args.order)
         return relative_error(exact_target_pathway_signal, predicted) ** 2
 
     fit_result = differential_evolution(
@@ -408,12 +550,7 @@ def main() -> None:
         updating="immediate",
     )
     fit_lam = fit_result.x
-    fitted_reconstruction = transported_signal(
-        reference_pathway_signals,
-        expansion,
-        fit_lam,
-        order=args.order,
-    )
+    fitted_reconstruction = evaluate_sector_reconstruction(sector_data, fit_lam, order=args.order)
     correction_rows = correction_table(parameter_map, target_lam, fit_lam)
 
     scan = np.linspace(0.0, 1.0, 6)
@@ -421,39 +558,76 @@ def main() -> None:
     second_errors = []
     for scale in scan:
         lam = scale * target_lam
-        exact = np.sum(
-            pathway_signal_grid(
-                model,
-                parameter_map,
-                lam,
-                omega1_values,
-                omega3_values,
-                pathways,
-                tau2=args.tau2,
-                eta=args.eta,
-            ),
-            axis=1,
+        exact = exact_sector_pathway_signal(
+            model,
+            parameter_map,
+            lam,
+            omega1_values,
+            omega3_values,
+            sector_data,
+            tau2=args.tau2,
+            eta=args.eta,
         )
         first_errors.append(
             relative_error(
                 exact,
-                transported_signal(reference_pathway_signals, expansion, lam, order=1),
+                evaluate_sector_reconstruction(sector_data, lam, order=1),
             )
         )
         second_errors.append(
             relative_error(
                 exact,
-                transported_signal(reference_pathway_signals, expansion, lam, order=2),
+                evaluate_sector_reconstruction(sector_data, lam, order=2),
             )
         )
     first_errors = np.asarray(first_errors)
     second_errors = np.asarray(second_errors)
 
+    reference_model_signal_norm, reference_model_power = normalize_to_unit_power(
+        reference_model_signal,
+        omega1_values,
+        omega3_values,
+    )
+    target_model_signal_norm, target_model_power = normalize_to_unit_power(
+        target_model_signal,
+        omega1_values,
+        omega3_values,
+    )
+    exact_target_pathway_signal_norm, target_pathway_power = normalize_to_unit_power(
+        exact_target_pathway_signal,
+        omega1_values,
+        omega3_values,
+    )
+    reference_pathway_signal_norm, reference_pathway_power = normalize_to_unit_power(
+        reference_pathway_signal,
+        omega1_values,
+        omega3_values,
+    )
+    exact_projected_transport_signal_norm, _ = normalize_to_unit_power(
+        exact_projected_transport_signal,
+        omega1_values,
+        omega3_values,
+        norm=target_pathway_power,
+    )
+    selected_reconstruction_norm, _ = normalize_to_unit_power(
+        selected_reconstruction,
+        omega1_values,
+        omega3_values,
+        norm=target_pathway_power,
+    )
+    fitted_reconstruction_norm, _ = normalize_to_unit_power(
+        fitted_reconstruction,
+        omega1_values,
+        omega3_values,
+        norm=target_pathway_power,
+    )
+    residual_signal_norm = selected_reconstruction_norm - exact_target_pathway_signal_norm
+
     for component in ("real", "abs"):
         plot_signal_contours(
             omega1_values,
             omega3_values,
-            reference_model_signal,
+            reference_model_signal_norm,
             "Exact model spectrum at reference",
             args.output_dir / f"model_reference_{component}.png",
             component=component,
@@ -461,7 +635,7 @@ def main() -> None:
         plot_signal_contours(
             omega1_values,
             omega3_values,
-            target_model_signal,
+            target_model_signal_norm,
             "Exact model spectrum at target",
             args.output_dir / f"model_target_{component}.png",
             component=component,
@@ -469,7 +643,7 @@ def main() -> None:
         plot_signal_contours(
             omega1_values,
             omega3_values,
-            exact_target_pathway_signal,
+            exact_target_pathway_signal_norm,
             "Exact target pathway signal",
             args.output_dir / f"pathway_target_exact_{component}.png",
             component=component,
@@ -477,7 +651,7 @@ def main() -> None:
         plot_signal_contours(
             omega1_values,
             omega3_values,
-            exact_projected_transport_signal,
+            exact_projected_transport_signal_norm,
             "Exact projected transport",
             args.output_dir / f"pathway_target_exact_projected_transport_{component}.png",
             component=component,
@@ -485,7 +659,7 @@ def main() -> None:
         plot_signal_contours(
             omega1_values,
             omega3_values,
-            selected_reconstruction,
+            selected_reconstruction_norm,
             f"Transport reconstruction, order {args.order}",
             args.output_dir / f"pathway_target_reconstructed_order{args.order}_{component}.png",
             component=component,
@@ -493,7 +667,7 @@ def main() -> None:
         plot_signal_contours(
             omega1_values,
             omega3_values,
-            residual_signal,
+            residual_signal_norm,
             "Transport residual",
             args.output_dir / f"pathway_transport_residual_order{args.order}_{component}.png",
             component=component,
@@ -501,7 +675,7 @@ def main() -> None:
         plot_signal_contours(
             omega1_values,
             omega3_values,
-            fitted_reconstruction,
+            fitted_reconstruction_norm,
             f"Fitted transport reconstruction, order {args.order}",
             args.output_dir / f"pathway_target_fitted_reconstruction_order{args.order}_{component}.png",
             component=component,
@@ -509,14 +683,14 @@ def main() -> None:
 
     plot_transport_matrix(
         T_target,
-        expansion.labels,
+        labels,
         f"Transport matrix T(lambda), order {args.order}",
         args.output_dir / f"transport_matrix_order{args.order}_abs.png",
         component="abs",
     )
     plot_transport_matrix(
         T_target,
-        expansion.labels,
+        labels,
         f"Transport matrix T(lambda), order {args.order}",
         args.output_dir / f"transport_matrix_order{args.order}_real.png",
         component="real",
@@ -530,6 +704,9 @@ def main() -> None:
 
     params0 = parameter_map.params(parameter_map.zero())
     params_target = parameter_map.params(target_lam)
+    T0_block = block_diag([data.expansion.T0 for data in sector_data])
+    end_wall = datetime.now().astimezone()
+    elapsed_seconds = time.perf_counter() - start_perf
     summary_file = args.output_dir / "demo_summary.txt"
     with summary_file.open("w", encoding="utf-8") as handle:
         handle.write("Dimer Duhamel/transport proof of concept\n")
@@ -548,11 +725,27 @@ def main() -> None:
 
         handle.write("Numerical setup\n")
         handle.write("-" * 72 + "\n")
+        handle.write(f"start time: {start_wall.isoformat()}\n")
+        handle.write(f"stop time: {end_wall.isoformat()}\n")
+        handle.write(f"elapsed seconds: {elapsed_seconds:.6f}\n")
         handle.write("Derivative backend: finite-difference pathway transport\n")
         handle.write(f"sectors: {list(sectors)}\n")
+        handle.write("wave-vector conservation: enforced by independent sector blocks\n")
         handle.write(f"n_omega: {args.n_omega}\n")
         handle.write(f"omega window: {args.omega_min:.8f} to {args.omega_max:.8f} eV\n")
         handle.write(f"eta: {args.eta:.12e}\n\n")
+
+        handle.write("Spectral normalization\n")
+        handle.write("-" * 72 + "\n")
+        handle.write("Plotted and saved normalized spectra use int d omega_1 d omega_3 |S|^2 = 1.\n")
+        handle.write(
+            "Pathway reconstructions and pathway residuals are normalized by the "
+            "exact target pathway-signal norm so amplitudes remain comparable.\n"
+        )
+        handle.write(f"reference model raw integrated power: {reference_model_power:.12e}\n")
+        handle.write(f"target model raw integrated power: {target_model_power:.12e}\n")
+        handle.write(f"reference pathway raw integrated power: {reference_pathway_power:.12e}\n")
+        handle.write(f"target pathway raw integrated power: {target_pathway_power:.12e}\n\n")
 
         handle.write("Reference model\n")
         handle.write("-" * 72 + "\n")
@@ -590,7 +783,13 @@ def main() -> None:
         handle.write("-" * 72 + "\n")
         handle.write(f"number of retained pathways: {len(pathways)}\n")
         handle.write(f"candidate residual max: {np.max(candidate_residuals):.12e}\n")
-        handle.write(f"||T0-I||: {np.linalg.norm(expansion.T0 - np.eye(len(pathways))):.12e}\n")
+        handle.write(f"||T0-I||, block diagonal sectors: {np.linalg.norm(T0_block - np.eye(len(pathways))):.12e}\n")
+        handle.write("sector block sizes\n")
+        for data in sector_data:
+            handle.write(
+                f"  {data.sector}: retained_pathways={len(data.pathways)} "
+                f"candidate_residual_max={np.max(data.candidate_residuals):.12e}\n"
+            )
         handle.write(
             "exact projected-transport target relative error: "
             f"{relative_error(exact_target_pathway_signal, exact_projected_transport_signal):.12e}\n"
@@ -613,7 +812,7 @@ def main() -> None:
         )
         handle.write("pathway labels\n")
         handle.write("-" * 72 + "\n")
-        for index, label in enumerate(expansion.labels):
+        for index, label in enumerate(labels):
             handle.write(f"{index:2d}: {label}\n")
 
     np.savez_compressed(
@@ -623,14 +822,35 @@ def main() -> None:
         target_lam=target_lam,
         reference_model_signal=reference_model_signal,
         target_model_signal=target_model_signal,
+        reference_model_signal_normalized=reference_model_signal_norm,
+        target_model_signal_normalized=target_model_signal_norm,
         reference_pathway_signal=reference_pathway_signal,
         exact_target_pathway_signal=exact_target_pathway_signal,
+        reference_pathway_signal_normalized=reference_pathway_signal_norm,
+        exact_target_pathway_signal_normalized=exact_target_pathway_signal_norm,
         exact_projected_transport_signal=exact_projected_transport_signal,
+        exact_projected_transport_signal_normalized=exact_projected_transport_signal_norm,
         reconstructed_first=reconstructed_first,
         reconstructed_second=reconstructed_second,
+        selected_reconstruction_normalized=selected_reconstruction_norm,
         fitted_reconstruction=fitted_reconstruction,
+        fitted_reconstruction_normalized=fitted_reconstruction_norm,
+        residual_signal_normalized=residual_signal_norm,
+        normalization_powers=np.asarray([
+            reference_model_power,
+            target_model_power,
+            reference_pathway_power,
+            target_pathway_power,
+        ]),
+        normalization_power_labels=np.asarray([
+            "reference_model",
+            "target_model",
+            "reference_pathway",
+            "target_pathway",
+        ], dtype=str),
         T_exact=T_exact,
         T_target=T_target,
+        T0_block=T0_block,
         fit_lam=fit_lam,
         correction_control_names=np.asarray([row["control"] for row in correction_rows], dtype=str),
         correction_table=np.asarray([
@@ -660,10 +880,15 @@ def main() -> None:
             "input_value",
             "fit_value",
         ], dtype=str),
-        labels=np.asarray(expansion.labels, dtype=str),
+        labels=np.asarray(labels, dtype=str),
+        sector_labels=np.asarray([data.sector for data in sector_data], dtype=str),
+        sector_block_sizes=np.asarray([len(data.pathways) for data in sector_data], dtype=int),
         scan=scan,
         first_errors=first_errors,
         second_errors=second_errors,
+        start_time=np.asarray(start_wall.isoformat(), dtype=str),
+        stop_time=np.asarray(end_wall.isoformat(), dtype=str),
+        elapsed_seconds=np.asarray(elapsed_seconds),
     )
 
     print("Dimer Duhamel/transport proof of concept")

@@ -201,6 +201,22 @@ workflow and output are the intended validation target:
 - transport-matrix heat maps;
 - an error curve along the target lambda direction.
 
+Wave-vector conservation is enforced in the transport step by building
+independent sector blocks. For example, with `--sectors RP NRP`, the RP and NRP
+pathway bases are selected, transported, and expanded separately; only the final
+sector signals are summed for plotting. This prevents the transport projection
+from mixing phase-matching sectors.
+
+All plotted/saved spectra are normalized so that
+
+```text
+int d omega_1 d omega_3 |S(omega_3, omega_1)|^2 = 1.
+```
+
+For pathway reconstruction plots, the exact target pathway-signal norm is used
+for the exact target, reconstructed target, and residual so their amplitudes can
+be compared directly.
+
 The default controls are `lambda = (J_12, k_12)` around the reference model:
 
 ```text
@@ -232,6 +248,10 @@ The report separates these ideas explicitly:
   correction values inferred by minimizing the residual.
 - `Transport reconstruction diagnostics at injected target lambda`: the
   reconstruction errors evaluated at the known injected target.
+- `Numerical setup`: start time, stop time, elapsed time, frequency window,
+  finite `eta`, and phase-matching sector settings.
+- `Spectral normalization`: raw integrated powers used to normalize the saved
+  spectra.
 
 ## Diagnostics
 

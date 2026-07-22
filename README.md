@@ -201,6 +201,13 @@ workflow and output are the intended validation target:
 - transport-matrix heat maps;
 - an error curve along the target lambda direction.
 
+Spectrum plots are written for the real, imaginary, and absolute-value
+components. The `sector_RP_*` and `sector_NRP_*` reference/target plots are
+direct phase-matched spectra summed over all canonical pathways in that sector.
+The matching `sector_*_distorted_estimate_*` plots are the retained-basis
+transport reconstructions, so they are the approximation being tested rather
+than another exact sector calculation.
+
 Wave-vector conservation is enforced in the transport step by building
 independent sector blocks. For example, with `--sectors RP NRP`, the RP and NRP
 pathway bases are selected, transported, and expanded separately; only the final

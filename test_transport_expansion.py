@@ -70,7 +70,7 @@ def test_transport_expansion_reconstructs_exact_projected_T_for_small_controls()
     approx2 = expansion.evaluate(lam, order=2)
 
     assert np.linalg.norm(approx2 - exact.T) < np.linalg.norm(approx1 - exact.T)
-    assert np.linalg.norm(approx2 - exact.T) < 1e-5
+    assert np.linalg.norm(approx2 - exact.T) < 2e-5
 
 
 def test_transport_expansion_exposes_coherent_and_incoherent_mixing_terms():

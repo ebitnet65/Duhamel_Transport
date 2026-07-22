@@ -407,9 +407,9 @@ def get_sector_pathways(sector: str, order: int = 3) -> list[Pathway]:
 def omega1_sign_for_sector(sector: str) -> int:
     sector = sector.upper()
     if sector == "RP":
-        return -1
-    if sector in ("NRP", "DQC"):
         return +1
+    if sector in ("NRP", "DQC"):
+        return -1
     raise ValueError("omega1 sign is defined only for RP, NRP, DQC")
 
 
@@ -447,7 +447,7 @@ def pathway_state_point(
     J3 = interaction_super(*pathway[2], mu=mu, dipole_components=mu_components)
 
     G1 = model.G(L, omega1_sign_for_sector(sector) * omega1, eta)
-    G3 = model.G(L, omega3, eta)
+    G3 = model.G(L, -omega3, eta)
     U2 = model.U(L, tau2)
 
     state = G1 @ J1 @ rho

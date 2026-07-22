@@ -47,6 +47,9 @@ os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-duhamel-transport")
 import matplotlib.pyplot as plt
 
 
+SPECTRUM_COMPONENTS = ("real", "imag", "abs")
+
+
 def log_progress(message: str, start_perf: float) -> None:
     elapsed = time.perf_counter() - start_perf
     stamp = datetime.now().astimezone().isoformat(timespec="seconds")
@@ -123,6 +126,13 @@ def plot_signal_contours(
         line_levels = np.linspace(-vmax, vmax, 9)
         cmap = "RdBu_r"
         label = r"$\mathrm{Re}\,S$"
+    elif component == "imag":
+        values = np.imag(grid)
+        vmax = float(np.max(np.abs(values)))
+        contour_levels = np.linspace(-vmax, vmax, levels)
+        line_levels = np.linspace(-vmax, vmax, 9)
+        cmap = "RdBu_r"
+        label = r"$\mathrm{Im}\,S$"
     elif component == "abs":
         values = np.abs(grid)
         vmax = float(np.max(values))
@@ -131,7 +141,7 @@ def plot_signal_contours(
         cmap = "magma"
         label = r"$|S|$"
     else:
-        raise ValueError("component must be 'real' or 'abs'")
+        raise ValueError("component must be 'real', 'imag', or 'abs'")
 
     fig, ax = plt.subplots(figsize=(6.0, 5.2))
     filled = ax.contourf(
@@ -140,7 +150,7 @@ def plot_signal_contours(
         values,
         levels=contour_levels,
         cmap=cmap,
-        extend="both" if component == "real" else "max",
+        extend="both" if component in ("real", "imag") else "max",
     )
     if np.max(np.abs(line_levels)) > 0:
         ax.contour(
@@ -203,13 +213,24 @@ def plot_sector_spectrum_triptych(
     values_by_panel = []
     for _label, signal in panels:
         grid = signal.reshape(len(omega3_values), len(omega1_values))
-        values_by_panel.append(np.real(grid) if component == "real" else np.abs(grid))
+        if component == "real":
+            values_by_panel.append(np.real(grid))
+        elif component == "imag":
+            values_by_panel.append(np.imag(grid))
+        else:
+            values_by_panel.append(np.abs(grid))
 
     if component == "real":
         vmax = max(float(np.max(np.abs(values))) for values in values_by_panel)
         levels = np.linspace(-vmax, vmax, 22)
         cmap = "RdBu_r"
         colorbar_label = r"$\mathrm{Re}\,S$"
+        extend = "both"
+    elif component == "imag":
+        vmax = max(float(np.max(np.abs(values))) for values in values_by_panel)
+        levels = np.linspace(-vmax, vmax, 22)
+        cmap = "RdBu_r"
+        colorbar_label = r"$\mathrm{Im}\,S$"
         extend = "both"
     elif component == "abs":
         vmax = max(float(np.max(values)) for values in values_by_panel)
@@ -218,7 +239,7 @@ def plot_sector_spectrum_triptych(
         colorbar_label = r"$|S|$"
         extend = "max"
     else:
-        raise ValueError("component must be 'real' or 'abs'")
+        raise ValueError("component must be 'real', 'imag', or 'abs'")
 
     fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.2), sharex=True, sharey=True)
     filled = None
@@ -231,7 +252,11 @@ def plot_sector_spectrum_triptych(
             cmap=cmap,
             extend=extend,
         )
-        line_levels = np.linspace(-vmax, vmax, 9) if component == "real" else np.linspace(0.0, vmax, 7)[1:]
+        line_levels = (
+            np.linspace(-vmax, vmax, 9)
+            if component in ("real", "imag")
+            else np.linspace(0.0, vmax, 7)[1:]
+        )
         if np.max(np.abs(line_levels)) > 0:
             ax.contour(
                 omega1_values,
@@ -336,6 +361,35 @@ def sector_signal(data: SectorTransportData, kind: str, *, order: int) -> np.nda
     if kind == "reconstructed":
         return data.reconstructed_second if order == 2 else data.reconstructed_first
     raise ValueError("kind must be reference, target, or reconstructed")
+
+
+def direct_sector_signal_grid(
+    model: general.LiouvilleModel,
+    parameter_map: general.ParameterMap,
+    lam: np.ndarray,
+    omega1_values: np.ndarray,
+    omega3_values: np.ndarray,
+    sector: str,
+    *,
+    tau2: float,
+    eta: float,
+) -> np.ndarray:
+    """Return the direct phase-matched sector response over all RWA pathways."""
+
+    pathways = general.canonical_pathways((sector,))
+    return np.sum(
+        pathway_signal_grid(
+            model,
+            parameter_map,
+            lam,
+            omega1_values,
+            omega3_values,
+            pathways,
+            tau2=tau2,
+            eta=eta,
+        ),
+        axis=1,
+    )
 
 
 def build_sector_transport_data(
@@ -599,15 +653,17 @@ def write_model_description(
                 "int d omega_1 d omega_3 |S(omega_3, omega_1)|^2 = 1.",
                 "```",
                 "",
-                "For each sector triptych, the reference spectrum is normalized by its own integrated power; the exact target and transported estimate share the exact target sector norm so that their amplitudes are directly comparable.",
+                "For each sector triptych, reference and target are direct phase-matched RP/NRP spectra summed over all canonical pathways. The transported estimate is the retained-basis transport reconstruction for that sector.",
+                "",
+                "The reference spectrum is normalized by its own integrated power; the exact target and transported estimate share the exact target sector norm so that their amplitudes are directly comparable.",
                 "",
                 "## Primary Figure Files",
                 "",
-                "- `sector_RP_triptych_real.png` and `sector_RP_triptych_abs.png`",
-                "- `sector_NRP_triptych_real.png` and `sector_NRP_triptych_abs.png`",
-                "- `model_reference_real.png` and `model_reference_abs.png`",
-                "- `model_target_real.png` and `model_target_abs.png`",
-                "- `pathway_target_reconstructed_order*_real.png` and `pathway_target_reconstructed_order*_abs.png`",
+                "- `sector_RP_triptych_real.png`, `sector_RP_triptych_imag.png`, and `sector_RP_triptych_abs.png`",
+                "- `sector_NRP_triptych_real.png`, `sector_NRP_triptych_imag.png`, and `sector_NRP_triptych_abs.png`",
+                "- `model_reference_real.png`, `model_reference_imag.png`, and `model_reference_abs.png`",
+                "- `model_target_real.png`, `model_target_imag.png`, and `model_target_abs.png`",
+                "- `pathway_target_reconstructed_order*_real.png`, `pathway_target_reconstructed_order*_imag.png`, and `pathway_target_reconstructed_order*_abs.png`",
                 "",
             ]
         )
@@ -828,8 +884,29 @@ def main() -> None:
     log_progress("writing sector spectra", start_perf)
     sector_npz_payload = {}
     for data in sector_data:
-        sector_reference = sector_signal(data, "reference", order=args.order)
-        sector_target = sector_signal(data, "target", order=args.order)
+        log_progress(f"computing direct {data.sector} sector spectra", start_perf)
+        sector_reference_retained = sector_signal(data, "reference", order=args.order)
+        sector_target_retained = sector_signal(data, "target", order=args.order)
+        sector_reference = direct_sector_signal_grid(
+            model,
+            parameter_map,
+            parameter_map.zero(),
+            omega1_values,
+            omega3_values,
+            data.sector,
+            tau2=args.tau2,
+            eta=args.eta,
+        )
+        sector_target = direct_sector_signal_grid(
+            model,
+            parameter_map,
+            target_lam,
+            omega1_values,
+            omega3_values,
+            data.sector,
+            tau2=args.tau2,
+            eta=args.eta,
+        )
         sector_reconstructed = sector_signal(data, "reconstructed", order=args.order)
         sector_reference_norm, sector_reference_power = normalize_to_unit_power(
             sector_reference,
@@ -851,6 +928,12 @@ def main() -> None:
         sector_npz_payload[f"sector_{sector_key}_reference_signal"] = sector_reference
         sector_npz_payload[f"sector_{sector_key}_target_signal"] = sector_target
         sector_npz_payload[f"sector_{sector_key}_reconstructed_signal"] = sector_reconstructed
+        sector_npz_payload[
+            f"sector_{sector_key}_retained_basis_reference_signal"
+        ] = sector_reference_retained
+        sector_npz_payload[
+            f"sector_{sector_key}_retained_basis_target_signal"
+        ] = sector_target_retained
         sector_npz_payload[f"sector_{sector_key}_reference_signal_normalized"] = sector_reference_norm
         sector_npz_payload[f"sector_{sector_key}_target_signal_normalized"] = sector_target_norm
         sector_npz_payload[f"sector_{sector_key}_reconstructed_signal_normalized"] = sector_reconstructed_norm
@@ -859,7 +942,7 @@ def main() -> None:
             sector_target_power,
         ])
 
-        for component in ("real", "abs"):
+        for component in SPECTRUM_COMPONENTS:
             plot_sector_spectrum_triptych(
                 omega1_values,
                 omega3_values,
@@ -897,7 +980,7 @@ def main() -> None:
             )
 
     log_progress("writing combined spectra", start_perf)
-    for component in ("real", "abs"):
+    for component in SPECTRUM_COMPONENTS:
         plot_signal_contours(
             omega1_values,
             omega3_values,
@@ -1012,6 +1095,18 @@ def main() -> None:
         handle.write(f"n_omega: {args.n_omega}\n")
         handle.write(f"omega window: {args.omega_min:.8f} to {args.omega_max:.8f} eV\n")
         handle.write(f"eta: {args.eta:.12e}\n\n")
+
+        handle.write("Sector spectra\n")
+        handle.write("-" * 72 + "\n")
+        handle.write(
+            "sector_*_reference and sector_*_target plots are direct "
+            "phase-matched RP/NRP spectra summed over all canonical pathways.\n"
+        )
+        handle.write(
+            "sector_*_distorted_estimate plots are the retained-basis transport "
+            "reconstructions for the same sector.\n"
+        )
+        handle.write("All spectrum families are written as real, imag, and abs components.\n\n")
 
         handle.write("Spectral normalization\n")
         handle.write("-" * 72 + "\n")

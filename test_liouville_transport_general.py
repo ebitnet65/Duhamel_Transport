@@ -61,6 +61,12 @@ def test_general_pathway_bookkeeping_matches_reference():
         assert general_labels == reference_labels
 
 
+def test_positive_frequency_axis_signs_are_resonant_for_sector_first_coherence():
+    assert general.omega1_sign_for_sector("RP") == +1
+    assert general.omega1_sign_for_sector("NRP") == -1
+    assert general.omega1_sign_for_sector("DQC") == -1
+
+
 def test_general_pathway_state_matches_reference_implementation():
     model = two_level_model()
     pmap = parameter_map()
@@ -85,8 +91,8 @@ def test_general_pathway_state_matches_reference_implementation():
     J1 = reference.interaction_super(*pathway[0])
     J2 = reference.interaction_super(*pathway[1])
     J3 = reference.interaction_super(*pathway[2])
-    G1 = reference.G_freq(L, -omega, eta=1e-3)
-    G3 = reference.G_freq(L, omega, eta=1e-3)
+    G1 = reference.G_freq(L, +omega, eta=1e-3)
+    G3 = reference.G_freq(L, -omega, eta=1e-3)
     U2 = __import__("scipy.linalg").linalg.expm(L * 1.0)
     expected = G3 @ J3 @ U2 @ J2 @ G1 @ J1 @ rho0
 

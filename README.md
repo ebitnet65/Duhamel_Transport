@@ -24,6 +24,10 @@ The recommended collaborator entry points are:
   Liouvillian connection tensors, builds a small order-3 Duhamel transport
   demo, inspects `T(lambda)`, and displays the production/benchmark plots when
   those artifacts are present locally.
+- `notebooks/03_custom_model_workflow.ipynb`: tutorial template for a
+  user-defined Liouvillian; it defines a V-system model in notebook cells,
+  selects control parameters, computes Duhamel transport matrices, and compares
+  target and transported final signals.
 
 ## Main Files
 

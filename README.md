@@ -13,6 +13,18 @@ canonical lambda-zero Liouville pathway basis:
 The resulting transport matrices `T_ab(lambda)` quantify how phase-matched
 pathway components deform under the rotated dephasing Liouvillian.
 
+## Beta Notebooks
+
+The recommended collaborator entry points are:
+
+- `notebooks/01_model_and_signal_demo.ipynb`: constructs the four-level exciton
+  dimer, defines the lambda controls, retains RP/NRP pathway bases, and plots
+  reference/target spectra.
+- `notebooks/02_duhamel_transport_beta_analysis.ipynb`: computes autodiff
+  Liouvillian connection tensors, builds a small order-3 Duhamel transport
+  demo, inspects `T(lambda)`, and displays the production/benchmark plots when
+  those artifacts are present locally.
+
 ## Main Files
 
 - `phase_matched_response.py`: phase-matched RP/NRP two-level response model.

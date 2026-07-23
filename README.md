@@ -35,6 +35,8 @@ pathway components deform under the rotated dephasing Liouvillian.
   rate-weighted Lindblad dissipators for smooth Liouvillian derivatives.
 - `benchmark_dimer_transport_backends.py`: timing and accuracy comparison for
   finite-difference pathway transport versus autodiff/Duhamel transport.
+- `plot_dimer_backend_scaling.py`: combines benchmark CSV files and plots
+  timing/error scaling for finite-difference and autodiff/Duhamel backends.
 - `fit_v_system_transport_signal.py`: proof-of-concept inverse fit that
   generates a 2D V-system target signal and recovers the control displacement
   with the transported-signal expansion.
@@ -197,14 +199,15 @@ broadening `eta = 3e-3`. For quick iteration, use a smaller grid:
 python demo_dimer_duhamel_transport.py --n-omega 24 --output-dir dimer_duhamel_transport_demo_n24
 ```
 
-The current derivative backend is finite-difference pathway transport. This is
-the stand-in for the future autodiff/Duhamel derivative engine, but the
-workflow and output are the intended validation target:
+The derivative backend is selected with `--backend`. The default is
+finite-difference pathway transport; `--backend duhamel_autodiff` uses JAX
+Liouvillian derivatives and Duhamel insertions to construct the same pathway
+transport expansion:
 
 - exact reference and target model spectra;
 - exact target pathway signal;
 - exact projected transport reconstruction;
-- first- and second-order transport reconstructions;
+- first-, second-, and optional third-order transport reconstructions;
 - fitted correction values, reported as input-vs-fit lambda and physical
   parameter displacements;
 - residual maps;
@@ -255,6 +258,23 @@ the reference pathway subspace too aggressively.
 The reference model is explicitly the `J_12 = 0` model. The exact model spectra
 are the "model experimental" spectra; the transported pathway signals are the
 objects used to validate the Duhamel/transport expansion.
+
+A full plotted order-3 Duhamel/autodiff production analysis can be generated
+with:
+
+```bash
+python demo_dimer_duhamel_transport.py \
+  --clean-reference-dimer \
+  --clean-mu-esa-scale 1 \
+  --n-omega 120 \
+  --omega-min 0.8 \
+  --omega-max 1.4 \
+  --eta 0.003 \
+  --backend duhamel_autodiff \
+  --n-quad 4 \
+  --order 3 \
+  --sectors RP NRP
+```
 
 The `demo_summary.txt` file includes an `input-vs-fit corrections` table. It
 compares the injected control displacements with the best-fit displacements
@@ -464,6 +484,16 @@ terms are algebraic and cheap. The waiting-time propagator currently uses an
 explicit triple Duhamel quadrature, so order 3 should be treated as a reference
 implementation for small grids until that propagator derivative is optimized
 with cached exponentials or block/Frechet methods.
+
+To make timing/error scaling plots from existing benchmark summaries:
+
+```bash
+python plot_dimer_backend_scaling.py \
+  dimer_backend_benchmarks/production_compare_n12_n16_n24/benchmark_summary.csv \
+  dimer_backend_benchmarks/duhamel_autodiff_production_n40_n80_n120/benchmark_summary.csv \
+  dimer_backend_benchmarks/20260722_163259_duhamel_autodiff_order3_n120_q4/benchmark_summary.csv \
+  --output-dir dimer_backend_benchmarks/scaling_plots_autodiff_vs_fd
+```
 
 ### Parameter Notation
 

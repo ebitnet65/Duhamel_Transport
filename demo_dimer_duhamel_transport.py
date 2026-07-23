@@ -31,10 +31,13 @@ from datetime import datetime
 import numpy as np
 from scipy.optimize import differential_evolution
 
+import Liouville_autodiff as autodiff
 import Liouville_transport_general as general
+from exciton_dimer_autodiff import jax_exciton_dimer_liouvillian
 from exciton_dimer_model import exciton_dimer_model, exciton_dimer_parameter_map
 from fit_v_system_transport_signal import (
     commutator_signal_grid,
+    duhamel_transport_expansion_2d,
     finite_difference_transport_expansion_2d,
     pathway_state_grid_matrix,
     pathway_signal_grid,
@@ -72,6 +75,7 @@ class SectorTransportData:
     T_exact: np.ndarray
     reconstructed_first: np.ndarray
     reconstructed_second: np.ndarray
+    reconstructed_third: np.ndarray
     exact_projected_transport_signal: np.ndarray
 
 
@@ -216,11 +220,14 @@ def plot_error_curve(
     lam_values: np.ndarray,
     first_order_errors: np.ndarray,
     second_order_errors: np.ndarray,
+    third_order_errors: np.ndarray | None,
     output_file: Path,
 ) -> None:
     fig, ax = plt.subplots(figsize=(6.6, 4.6))
     ax.plot(lam_values, first_order_errors, marker="o", label="first order")
     ax.plot(lam_values, second_order_errors, marker="s", label="second order")
+    if third_order_errors is not None:
+        ax.plot(lam_values, third_order_errors, marker="^", label="third order")
     ax.set_xlabel("scale factor along target lambda")
     ax.set_ylabel("relative pathway-signal error")
     ax.set_yscale("log")
@@ -472,7 +479,11 @@ def sector_signal(data: SectorTransportData, kind: str, *, order: int) -> np.nda
     if kind == "target":
         return np.sum(data.exact_target_pathway_signals, axis=1)
     if kind == "reconstructed":
-        return data.reconstructed_second if order == 2 else data.reconstructed_first
+        if order == 3:
+            return data.reconstructed_third
+        if order == 2:
+            return data.reconstructed_second
+        return data.reconstructed_first
     raise ValueError("kind must be reference, target, or reconstructed")
 
 
@@ -517,6 +528,10 @@ def build_sector_transport_data(
     eta: float,
     fd_step: float,
     fd_second_step: float,
+    backend: str,
+    liouvillian_derivatives: dict[tuple[int, ...], np.ndarray] | None,
+    n_quad: int,
+    max_order: int,
 ) -> SectorTransportData:
     candidates = general.canonical_pathways((sector,))
     pathways, candidate_residuals = general.independent_canonical_pathways(
@@ -549,18 +564,37 @@ def build_sector_transport_data(
         tau2=tau2,
         eta=eta,
     )
-    expansion = finite_difference_transport_expansion_2d(
-        model,
-        parameter_map,
-        omega1_values,
-        omega3_values,
-        pathways,
-        tau2=tau2,
-        eta=eta,
-        step=fd_step,
-        second_step=fd_second_step,
-        rcond=1e-11,
-    )
+    if backend == "finite_difference":
+        expansion = finite_difference_transport_expansion_2d(
+            model,
+            parameter_map,
+            omega1_values,
+            omega3_values,
+            pathways,
+            tau2=tau2,
+            eta=eta,
+            step=fd_step,
+            second_step=fd_second_step,
+            rcond=1e-11,
+        )
+    elif backend == "duhamel_autodiff":
+        if liouvillian_derivatives is None:
+            raise ValueError("liouvillian_derivatives are required for duhamel_autodiff")
+        expansion = duhamel_transport_expansion_2d(
+            model,
+            parameter_map,
+            omega1_values,
+            omega3_values,
+            pathways,
+            liouvillian_derivatives=liouvillian_derivatives,
+            tau2=tau2,
+            eta=eta,
+            n_quad=n_quad,
+            max_order=max_order,
+            rcond=1e-11,
+        )
+    else:
+        raise ValueError("backend must be finite_difference or duhamel_autodiff")
     T_exact = exact_transport_matrix_2d(
         model,
         parameter_map,
@@ -591,6 +625,12 @@ def build_sector_transport_data(
             expansion,
             target_lam,
             order=2,
+        ),
+        reconstructed_third=transported_signal(
+            reference_pathway_signals,
+            expansion,
+            target_lam,
+            order=3,
         ),
         exact_projected_transport_signal=transported_signal_from_matrix(
             reference_pathway_signals,
@@ -748,6 +788,8 @@ def write_model_description(
                 f"- Green's-function broadening `eta`: `{args.eta:.12e}`",
                 f"- First-derivative finite-difference step: `{args.fd_step:.12e}`",
                 f"- Second-derivative finite-difference step: `{args.fd_second_step:.12e}`",
+                f"- Derivative backend: `{args.backend}`",
+                f"- Duhamel quadrature points: `{args.n_quad}`",
                 f"- Transport expansion order used for plotted estimate: `{args.order}`",
                 f"- Clean reference dimer: `{args.clean_reference_dimer}`",
                 f"- Clean reference ESA scale: `{args.clean_mu_esa_scale:.12e}`",
@@ -842,7 +884,13 @@ def parse_args() -> argparse.Namespace:
         help="ESA dipole scale used in clean-reference mode.",
     )
     parser.add_argument("--fit-bound", type=float, default=0.8)
-    parser.add_argument("--order", type=int, choices=(1, 2), default=2)
+    parser.add_argument("--order", type=int, choices=(1, 2, 3), default=2)
+    parser.add_argument(
+        "--backend",
+        choices=("finite_difference", "duhamel_autodiff"),
+        default="finite_difference",
+    )
+    parser.add_argument("--n-quad", type=int, default=16)
     parser.add_argument(
         "--sectors",
         nargs="+",
@@ -870,6 +918,16 @@ def main() -> None:
 
     model = exciton_dimer_model()
     parameter_map = dimer_parameter_map_from_args(args)
+    liouvillian_derivatives = None
+    if args.backend == "duhamel_autodiff":
+        log_progress("computing autodiff Liouvillian derivatives", start_perf)
+        liouvillian_derivatives = autodiff.jax_liouvillian_derivatives(
+            jax_exciton_dimer_liouvillian,
+            parameter_map,
+            liouville_dimension=model.liouville_dimension,
+            max_order=3,
+        )
+        log_progress("finished autodiff Liouvillian derivatives", start_perf)
     target_lam = np.array([args.lambda_J, args.lambda_k], dtype=float)
     omega1_values = np.linspace(args.omega_min, args.omega_max, args.n_omega)
     omega3_values = np.linspace(args.omega_min, args.omega_max, args.n_omega)
@@ -912,6 +970,10 @@ def main() -> None:
                 eta=args.eta,
                 fd_step=args.fd_step,
                 fd_second_step=args.fd_second_step,
+                backend=args.backend,
+                liouvillian_derivatives=liouvillian_derivatives,
+                n_quad=args.n_quad,
+                max_order=args.order,
             )
         )
         log_progress(f"finished {sector} sector transport data", start_perf)
@@ -928,7 +990,13 @@ def main() -> None:
     )
     reconstructed_first = sum(data.reconstructed_first for data in sector_data)
     reconstructed_second = sum(data.reconstructed_second for data in sector_data)
-    selected_reconstruction = reconstructed_second if args.order == 2 else reconstructed_first
+    reconstructed_third = sum(data.reconstructed_third for data in sector_data)
+    if args.order == 3:
+        selected_reconstruction = reconstructed_third
+    elif args.order == 2:
+        selected_reconstruction = reconstructed_second
+    else:
+        selected_reconstruction = reconstructed_first
     exact_projected_transport_signal = sum(
         data.exact_projected_transport_signal
         for data in sector_data
@@ -965,6 +1033,7 @@ def main() -> None:
     scan = np.linspace(0.0, 1.0, 6)
     first_errors = []
     second_errors = []
+    third_errors = []
     for scale in scan:
         lam = scale * target_lam
         exact = exact_sector_pathway_signal(
@@ -989,8 +1058,16 @@ def main() -> None:
                 evaluate_sector_reconstruction(sector_data, lam, order=2),
             )
         )
+        if args.order >= 3:
+            third_errors.append(
+                relative_error(
+                    exact,
+                    evaluate_sector_reconstruction(sector_data, lam, order=3),
+                )
+            )
     first_errors = np.asarray(first_errors)
     second_errors = np.asarray(second_errors)
+    third_errors_array = np.asarray(third_errors) if third_errors else None
     log_progress("finished transport error curve", start_perf)
 
     log_progress("normalizing spectra", start_perf)
@@ -1236,6 +1313,7 @@ def main() -> None:
         scan,
         first_errors,
         second_errors,
+        third_errors_array,
         args.output_dir / "transport_error_curve.png",
     )
     log_progress("finished plots", start_perf)
@@ -1271,7 +1349,7 @@ def main() -> None:
         handle.write(f"start time: {start_wall.isoformat()}\n")
         handle.write(f"stop time: {end_wall.isoformat()}\n")
         handle.write(f"elapsed seconds: {elapsed_seconds:.6f}\n")
-        handle.write("Derivative backend: finite-difference pathway transport\n")
+        handle.write(f"Derivative backend: {args.backend}\n")
         handle.write(f"sectors: {list(sectors)}\n")
         handle.write("wave-vector conservation: enforced by independent sector blocks\n")
         handle.write(f"n_omega: {args.n_omega}\n")
@@ -1279,6 +1357,7 @@ def main() -> None:
         handle.write(f"eta: {args.eta:.12e}\n")
         handle.write(f"first-derivative finite-difference step: {args.fd_step:.12e}\n")
         handle.write(f"second-derivative finite-difference step: {args.fd_second_step:.12e}\n\n")
+        handle.write(f"Duhamel quadrature points: {args.n_quad}\n\n")
 
         handle.write("Reference-model option\n")
         handle.write("-" * 72 + "\n")
@@ -1386,6 +1465,11 @@ def main() -> None:
             "second-order target relative error: "
             f"{relative_error(exact_target_pathway_signal, reconstructed_second):.12e}\n"
         )
+        if args.order >= 3:
+            handle.write(
+                "third-order target relative error: "
+                f"{relative_error(exact_target_pathway_signal, reconstructed_third):.12e}\n"
+            )
         handle.write(
             "fitted transport target relative error: "
             f"{relative_error(exact_target_pathway_signal, fitted_reconstruction):.12e}\n"
@@ -1430,6 +1514,7 @@ def main() -> None:
         exact_projected_transport_signal_normalized=exact_projected_transport_signal_norm,
         reconstructed_first=reconstructed_first,
         reconstructed_second=reconstructed_second,
+        reconstructed_third=reconstructed_third,
         selected_reconstruction_normalized=selected_reconstruction_norm,
         fitted_reconstruction=fitted_reconstruction,
         fitted_reconstruction_normalized=fitted_reconstruction_norm,
@@ -1484,12 +1569,15 @@ def main() -> None:
         scan=scan,
         first_errors=first_errors,
         second_errors=second_errors,
+        third_errors=np.asarray([] if third_errors_array is None else third_errors_array),
         start_time=np.asarray(start_wall.isoformat(), dtype=str),
         stop_time=np.asarray(end_wall.isoformat(), dtype=str),
         elapsed_seconds=np.asarray(elapsed_seconds),
         command=np.asarray(command_line, dtype=str),
         fd_step=np.asarray(args.fd_step),
         fd_second_step=np.asarray(args.fd_second_step),
+        backend=np.asarray(args.backend, dtype=str),
+        n_quad=np.asarray(args.n_quad),
         transport_norm_ratio=np.asarray(transport_norm_ratio),
         transport_max_ratio=np.asarray(transport_max_ratio),
         clean_reference_dimer=np.asarray(args.clean_reference_dimer),
@@ -1533,6 +1621,11 @@ def main() -> None:
         "relative error, second order: "
         f"{relative_error(exact_target_pathway_signal, reconstructed_second):.6e}"
     )
+    if args.order >= 3:
+        print(
+            "relative error, third order: "
+            f"{relative_error(exact_target_pathway_signal, reconstructed_third):.6e}"
+        )
     print(
         "relative error, fitted transport: "
         f"{relative_error(exact_target_pathway_signal, fitted_reconstruction):.6e}"

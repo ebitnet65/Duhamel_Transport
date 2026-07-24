@@ -28,6 +28,9 @@ The recommended collaborator entry points are:
   user-defined Liouvillian; it defines a V-system model in notebook cells,
   selects control parameters, computes Duhamel transport matrices, and compares
   target and transported final signals.
+- `docs/autodiff_nodal_structure.md`: graph/nodal view of how autodiff sees
+  `lambda -> L(lambda)`, how Duhamel consumes Liouvillian derivatives, and how
+  the transport matrix produces final signals.
 
 ## Main Files
 

@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use SAKE-DT, please cite this software release."
+type: software
+title: "SAKE-DT: Spectral Autodiff Kernel Expansion for Duhamel Transport"
+version: "v0.1-sake-autodiff-dimer"
+date-released: "2026-08-04"
+authors:
+  - family-names: Bittner
+    given-names: Eric R.
+repository-code: "https://github.com/ebitnet65/Duhamel_Transport"
+abstract: >
+  SAKE-DT is a Spectral Autodiff Kernel Expansion framework for Duhamel
+  transport of Liouville-space nonlinear-response pathways. This release
+  contains a four-level su(2) x su(2) exciton-dimer model, a JAX/autodiff
+  Liouvillian derivative backend, and Duhamel transport expansions through
+  third order.
+keywords:
+  - Duhamel expansion
+  - Liouville space
+  - autodiff
+  - JAX
+  - nonlinear spectroscopy
+  - two-dimensional spectroscopy
+  - exciton dimer
+  - pathway transport
+  - response functions

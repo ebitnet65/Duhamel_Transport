@@ -1,7 +1,14 @@
-# Duhamel Transport
+# SAKE-DT: Duhamel Transport
 
-Liouville-space pathway transport code for the rotated-pointer-basis two-level
-model used in the nonlinear-response/Duhamel reconstruction workflow.
+**SAKE-DT** is a Spectral Autodiff Kernel Expansion framework for Duhamel
+transport of Liouville-space nonlinear-response pathways.
+
+This branch is the SAKE/autodiff dimer release-development line. It contains
+the four-level `su(2) x su(2)` exciton-dimer model, JAX/autodiff Liouvillian
+derivatives, and Duhamel transport expansions through third order.
+
+The finite-difference-only two-level-system archive for the JCP3 manuscript is
+maintained separately on `codex/jcp3-finite-difference`.
 
 The central calculation projects finite-parameter pathway states onto a
 canonical lambda-zero Liouville pathway basis:
@@ -11,7 +18,19 @@ canonical lambda-zero Liouville pathway basis:
 ```
 
 The resulting transport matrices `T_ab(lambda)` quantify how phase-matched
-pathway components deform under the rotated dephasing Liouvillian.
+pathway components deform under a displaced Liouvillian.
+
+## SAKE Release
+
+The branch release note is:
+
+- `docs/sake_autodiff_dimer_release.md`
+
+Suggested release tag:
+
+```text
+v0.1-sake-autodiff-dimer
+```
 
 ## Beta Notebooks
 

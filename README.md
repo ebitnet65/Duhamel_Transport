@@ -31,6 +31,9 @@ The recommended collaborator entry points are:
 - `docs/autodiff_nodal_structure.md`: graph/nodal view of how autodiff sees
   `lambda -> L(lambda)`, how Duhamel consumes Liouvillian derivatives, and how
   the transport matrix produces final signals.
+- `docs/sake_autodiff_dimer_release.md`: branch-specific release note for the
+  SAKE/autodiff dimer development line, including production and benchmark
+  commands.
 
 ## Main Files
 

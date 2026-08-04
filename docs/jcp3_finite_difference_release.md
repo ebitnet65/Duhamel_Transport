@@ -1,16 +1,18 @@
-# JCP3 Finite-Difference Release Branch
+# JCP3 Finite-Difference Release
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21793116.svg)](https://doi.org/10.5281/zenodo.21793116)
 
-This branch archives the finite-difference-only code path for the rotated
-two-level-system plus dephasing model used in the JCP3 manuscript.
+This branch archives the finite-difference-only implementation of
+Liouville-space pathway transport for the rotated two-level-system plus
+dephasing model used in the JCP3 manuscript.
 
-It intentionally excludes the later autodiff and exciton-dimer development.
-Those features live on the separate SAKE/autodiff branch.
+The branch is intentionally scoped to the JCP3 development. The later
+autodiff, four-level exciton-dimer, and third-order Duhamel work live on the
+separate SAKE/autodiff branch.
 
-## DOI
+## Citation
 
-This release is archived on Zenodo:
+Release DOI:
 
 ```text
 10.5281/zenodo.21793116
@@ -18,9 +20,16 @@ This release is archived on Zenodo:
 
 DOI link: <https://doi.org/10.5281/zenodo.21793116>
 
-## Scope
+Suggested citation:
 
-Included:
+```text
+Bittner, E. R. Duhamel Transport v0.1: Finite-Difference Two-Level-System
+Release for JCP3. Zenodo. https://doi.org/10.5281/zenodo.21793116
+```
+
+## Contents
+
+Core files:
 
 - `phase_matched_response.py`: rotated-pointer-basis two-level Liouvillian and
   phase-matched RWA response utilities.
@@ -28,27 +37,32 @@ Included:
   projection, and transport-matrix diagnostics.
 - `run_liouville_transport.py`: finite-difference transport sweep and plotting
   driver.
-- `diagnose_reference_basis.py`: reference pathway-basis conditioning
-  diagnostic.
-- `diagnose_transport_stages.py`: stage-by-stage conditioning diagnostic.
+
+Diagnostics:
+
+- `diagnose_reference_basis.py`: reference pathway-basis conditioning.
+- `diagnose_transport_stages.py`: stage-by-stage pathway conditioning.
 - `test_phase_matched_response.py`: algebraic smoke check comparing
   `COMM_PLUS` and `ALL_RWA` response constructions.
 
-Excluded:
+Not included in this branch:
 
 - JAX/autodiff Liouvillian derivative code.
-- Four-level exciton-dimer and third-order Duhamel production code.
+- Four-level exciton-dimer model and third-order Duhamel production workflow.
 - SAKE release-development notebooks.
 
-## Validation Commands
+## Regenerating Validation Outputs
 
-Run the algebraic response smoke check:
+Use a non-interactive matplotlib backend when regenerating plots from a terminal
+or remote session.
+
+Algebraic response check:
 
 ```bash
 python test_phase_matched_response.py
 ```
 
-Regenerate the curated finite-difference transport plots:
+Transport matrices and residual diagnostics:
 
 ```bash
 env MPLBACKEND=Agg MPLCONFIGDIR=/private/tmp/matplotlib-duhamel \
@@ -58,7 +72,7 @@ env MPLBACKEND=Agg MPLCONFIGDIR=/private/tmp/matplotlib-duhamel \
     --output-dir publication_assets/jcp3_finite_difference/transport_output
 ```
 
-Regenerate the reference-basis diagnostics:
+Reference-basis diagnostics:
 
 ```bash
 env MPLBACKEND=Agg MPLCONFIGDIR=/private/tmp/matplotlib-duhamel \
@@ -67,7 +81,7 @@ env MPLBACKEND=Agg MPLCONFIGDIR=/private/tmp/matplotlib-duhamel \
     --output-dir publication_assets/jcp3_finite_difference/basis_diagnostics
 ```
 
-Regenerate the stage diagnostics:
+Stage diagnostics:
 
 ```bash
 env MPLBACKEND=Agg MPLCONFIGDIR=/private/tmp/matplotlib-duhamel \
@@ -76,42 +90,46 @@ env MPLBACKEND=Agg MPLCONFIGDIR=/private/tmp/matplotlib-duhamel \
     --output-dir publication_assets/jcp3_finite_difference/stage_diagnostics
 ```
 
-## Validation Summary
+## Archived Validation Run
 
-The archived validation run used:
+The tracked summaries and compact numerical data were generated with:
 
-- `n_omega = 101`
-- `n_lambda = 21`
-- `theta in [0, pi/2]`
-- `omega in [0.25, 1.75]`
-- `gamma_phi = 0.1`
-- `gamma1 = 0.02`
-- `eta = 1e-3`
-- `tau2 = 1.0`
-- initial state `fixed_steady0`
+| Quantity | Value |
+| --- | --- |
+| `n_omega` | `101` |
+| `n_lambda` | `21` |
+| `theta` range | `[0, pi/2]` |
+| `omega` range | `[0.25, 1.75]` |
+| `gamma_phi` | `0.1` |
+| `gamma1` | `0.02` |
+| `eta` | `1e-3` |
+| `tau2` | `1.0` |
+| initial state | `fixed_steady0` |
 
-Representative checks from the run:
+Representative checks:
 
-- `COMM_PLUS` versus `ALL_RWA` relative mismatch:
-  `9.568528191617517e-18`.
-- RP transport identity check:
-  `||T(0)-I|| = 6.342482549767e-16`.
-- NRP transport identity check:
-  `||T(0)-I|| = 9.339823478300e-16`.
-- Retained RP basis at `after_U2`: `RP-GSB`, `RP-SE`.
-- Retained NRP basis at `after_U2`: `NRP-R+L-L+`, `NRP-R+R-L+`.
-- RP and NRP basis rank at `after_U2`: `2` at relative tolerance `1e-12`.
+| Check | Value |
+| --- | --- |
+| `COMM_PLUS` vs `ALL_RWA` relative mismatch | `9.568528191617517e-18` |
+| RP `||T(0)-I||` | `6.342482549767e-16` |
+| NRP `||T(0)-I||` | `9.339823478300e-16` |
+| RP retained basis at `after_U2` | `RP-GSB`, `RP-SE` |
+| NRP retained basis at `after_U2` | `NRP-R+L-L+`, `NRP-R+R-L+` |
+| RP/NRP rank at `after_U2` | `2` at relative tolerance `1e-12` |
 
-## Curated Assets
+## Validation Assets
 
-The branch includes tracked text summaries and compact numerical outputs under:
+Tracked release assets live under:
 
 ```text
 publication_assets/jcp3_finite_difference/
 ```
 
-The validation commands above regenerate the manuscript/SI plots in the same
-directory. The most useful generated plots for manuscript or SI reference are:
+The branch tracks text summaries and compact `.npz` numerical outputs. PNG
+plots are generated artifacts and are ignored by git; regenerate them with the
+commands above.
+
+Useful generated plots include:
 
 - `transport_output/RP/RP_T_abs_final.png`
 - `transport_output/RP/RP_T_real_final.png`
@@ -125,7 +143,3 @@ directory. The most useful generated plots for manuscript or SI reference are:
 - `basis_diagnostics/NRP_gram_abs.png`
 - `stage_diagnostics/RP_condition_by_stage.png`
 - `stage_diagnostics/NRP_condition_by_stage.png`
-
-The `.npz` files are included so selected transport plots can be regenerated or
-reanalyzed without rerunning the full transport sweep. The PNG plots themselves
-are treated as generated artifacts and are ignored by git.

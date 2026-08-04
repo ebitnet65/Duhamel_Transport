@@ -3,6 +3,7 @@ message: "If you use SAKE-DT, please cite this software release."
 type: software
 title: "SAKE-DT: Spectral Autodiff Kernel Expansion for Duhamel Transport"
 version: "v0.1-sake-autodiff-dimer"
+doi: "10.5281/zenodo.21793438"
 date-released: "2026-08-04"
 authors:
   - family-names: Bittner

@@ -1,5 +1,7 @@
 # SAKE-DT Autodiff Dimer Release
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21793438.svg)](https://doi.org/10.5281/zenodo.21793438)
+
 **SAKE-DT** stands for:
 
 ```text
@@ -17,6 +19,23 @@ lives on:
 codex/jcp3-finite-difference
 ```
 
+## Citation
+
+Release DOI:
+
+```text
+10.5281/zenodo.21793438
+```
+
+DOI link: <https://doi.org/10.5281/zenodo.21793438>
+
+Suggested citation:
+
+```text
+Bittner, E. R. SAKE-DT v0.1: Spectral Autodiff Kernel Expansion for
+Duhamel Transport. Zenodo. https://doi.org/10.5281/zenodo.21793438
+```
+
 ## Suggested Release Metadata
 
 Suggested GitHub tag:
@@ -28,7 +47,7 @@ v0.1-sake-autodiff-dimer
 Suggested release title:
 
 ```text
-SAKE-DT v0.1: Autodiff Duhamel Transport for a Four-Level Exciton Dimer
+SAKE-DT v0.1: Spectral Autodiff Kernel Expansion for Duhamel Transport
 ```
 
 Suggested short description:

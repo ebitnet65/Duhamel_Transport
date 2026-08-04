@@ -1,5 +1,7 @@
 # SAKE-DT: Duhamel Transport
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21793438.svg)](https://doi.org/10.5281/zenodo.21793438)
+
 **SAKE-DT** is a Spectral Autodiff Kernel Expansion framework for Duhamel
 transport of Liouville-space nonlinear-response pathways.
 
@@ -31,6 +33,8 @@ Suggested release tag:
 ```text
 v0.1-sake-autodiff-dimer
 ```
+
+Release DOI: [10.5281/zenodo.21793438](https://doi.org/10.5281/zenodo.21793438).
 
 ## Beta Notebooks
 

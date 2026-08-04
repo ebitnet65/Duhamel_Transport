@@ -1,5 +1,7 @@
 # Duhamel Transport
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21793116.svg)](https://doi.org/10.5281/zenodo.21793116)
+
 Liouville-space pathway transport code for the rotated-pointer-basis two-level
 model used in the nonlinear-response/Duhamel reconstruction workflow.
 
@@ -12,6 +14,8 @@ include the autodiff/dimer development line.
 The curated validation assets for the paper branch are in
 `publication_assets/jcp3_finite_difference/`. They were regenerated from the
 commands in `docs/jcp3_finite_difference_release.md`.
+
+Release DOI: [10.5281/zenodo.21793116](https://doi.org/10.5281/zenodo.21793116).
 
 The central calculation projects finite-parameter pathway states onto a
 canonical lambda-zero Liouville pathway basis:

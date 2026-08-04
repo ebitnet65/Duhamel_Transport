@@ -1,10 +1,22 @@
 # JCP3 Finite-Difference Release Branch
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21793116.svg)](https://doi.org/10.5281/zenodo.21793116)
+
 This branch archives the finite-difference-only code path for the rotated
 two-level-system plus dephasing model used in the JCP3 manuscript.
 
 It intentionally excludes the later autodiff and exciton-dimer development.
 Those features live on the separate SAKE/autodiff branch.
+
+## DOI
+
+This release is archived on Zenodo:
+
+```text
+10.5281/zenodo.21793116
+```
+
+DOI link: <https://doi.org/10.5281/zenodo.21793116>
 
 ## Scope
 

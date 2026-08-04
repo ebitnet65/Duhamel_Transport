@@ -14,9 +14,14 @@ basis_diagnostics/
 stage_diagnostics/
 transport_output/
 figures/
+dimer_backend_benchmarks/
+dimer_duhamel_transport_demo*/
+dimer_duhamel_transport_production/
+exciton_dimer_spectra_diagnostics*/
+transport_fit_output*/
+v_system_spectra_diagnostics*/
 
 # Local environments
 .venv/
 venv/
 env/
-

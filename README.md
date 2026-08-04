@@ -3,6 +3,16 @@
 Liouville-space pathway transport code for the rotated-pointer-basis two-level
 model used in the nonlinear-response/Duhamel reconstruction workflow.
 
+## Publication Branch: JCP3 Finite Difference
+
+This branch is the finite-difference-only archive for the two-level system plus
+rotated dephasing model used in the JCP3 manuscript under review. It does not
+include the autodiff/dimer development line.
+
+The curated validation assets for the paper branch are in
+`publication_assets/jcp3_finite_difference/`. They were regenerated from the
+commands in `docs/jcp3_finite_difference_release.md`.
+
 The central calculation projects finite-parameter pathway states onto a
 canonical lambda-zero Liouville pathway basis:
 

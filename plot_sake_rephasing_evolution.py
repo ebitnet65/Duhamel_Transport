@@ -13,6 +13,7 @@ os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib-duhamel-transport")
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 
 import Liouville_transport_general as general
@@ -73,17 +74,18 @@ def interpolate_trajectory(points: np.ndarray, count: int) -> np.ndarray:
     ])
 
 
-def retained_rephasing_pathways(
+def retained_pathways(
     model: general.LiouvilleModel,
     parameter_map: general.ParameterMap,
     frequencies: np.ndarray,
     args: argparse.Namespace,
+    sector: str = "RP",
 ) -> list[general.CanonicalPathway]:
     pathways, _ = general.independent_canonical_pathways(
         model,
         parameter_map,
         frequencies,
-        general.canonical_pathways(("RP",)),
+        general.canonical_pathways((sector,)),
         stage="after_G3",
         tau2=args.tau2,
         eta=args.eta,
@@ -243,44 +245,56 @@ def spectral_movie(
 def pathway_mixing(
     paths: list[Path],
     labels: list[str],
-    pathway_labels: list[str],
+    pathway_labels: dict[str, list[str]],
     args: argparse.Namespace,
 ) -> None:
     matrices = []
     for path in paths:
         with np.load(path / "accumulated_transport.npz") as archive:
-            matrices.append(np.asarray(archive["accumulated_transport"][:3, :3]))
-    maximum = max(float(np.max(np.abs(matrix))) for matrix in matrices)
-    fig, axes = plt.subplots(1, 3, figsize=(7.2, 2.8), constrained_layout=True)
+            full = np.asarray(archive["accumulated_transport"])
+            matrices.append({"RP": full[:3, :3], "NRP": full[3:6, 3:6]})
+    maximum = max(
+        float(np.max(np.abs(matrix[sector])))
+        for matrix in matrices for sector in ("RP", "NRP")
+    )
+    light_blue = LinearSegmentedColormap.from_list(
+        "sake_light_blue", ["#ffffff", "#e7f1f8", "#bdd7ea", "#79add2"]
+    )
+    fig, axes = plt.subplots(2, 3, figsize=(7.2, 5.0), constrained_layout=True)
     report_rows = []
-    for target_index, (axis, matrix, label) in enumerate(zip(axes, matrices, labels, strict=True)):
-        image = axis.imshow(np.abs(matrix), origin="lower", cmap="magma", vmin=0.0, vmax=maximum)
-        axis.set_title(label)
-        axis.set_xticks(range(3), ["P1", "P2", "P3"])
-        axis.set_yticks(range(3), ["P1", "P2", "P3"])
-        axis.set_xlabel("Reference pathway")
-        if target_index == 0:
-            axis.set_ylabel("Target pathway")
-        for row in range(3):
-            for column in range(3):
-                magnitude = abs(matrix[row, column])
-                phase = np.degrees(np.angle(matrix[row, column]))
-                color = "white" if magnitude < 0.45 * maximum else "black"
-                axis.text(column, row, f"{magnitude:.2f}\n{phase:+.0f}°", ha="center", va="center", fontsize=6.5, color=color)
-                report_rows.append({
-                    "target": label,
-                    "target_pathway": pathway_labels[row],
-                    "reference_pathway": pathway_labels[column],
-                    "real": float(matrix[row, column].real),
-                    "imag": float(matrix[row, column].imag),
-                    "magnitude": float(magnitude),
-                    "phase_degrees": float(phase),
-                })
-    fig.colorbar(image, ax=axes, shrink=0.84, pad=0.02, label=r"$|T_{ab}^{\rm RP}|$")
+    for sector_index, sector in enumerate(("RP", "NRP")):
+        for target_index, (matrix_set, label) in enumerate(zip(matrices, labels, strict=True)):
+            axis = axes[sector_index, target_index]
+            matrix = matrix_set[sector]
+            image = axis.imshow(np.abs(matrix), origin="lower", cmap=light_blue, vmin=0.0, vmax=maximum)
+            if sector_index == 0:
+                axis.set_title(label)
+            axis.set_xticks(range(3), ["P1", "P2", "P3"])
+            axis.set_yticks(range(3), ["P1", "P2", "P3"])
+            if sector_index == 1:
+                axis.set_xlabel("Reference pathway")
+            if target_index == 0:
+                axis.set_ylabel(f"{sector} target pathway")
+            for row in range(3):
+                for column in range(3):
+                    magnitude = abs(matrix[row, column])
+                    phase = np.degrees(np.angle(matrix[row, column]))
+                    axis.text(column, row, f"{magnitude:.2f}", ha="center", va="center", fontsize=7, color="black")
+                    report_rows.append({
+                        "sector": sector,
+                        "target": label,
+                        "target_pathway": pathway_labels[sector][row],
+                        "reference_pathway": pathway_labels[sector][column],
+                        "real": float(matrix[row, column].real),
+                        "imag": float(matrix[row, column].imag),
+                        "magnitude": float(magnitude),
+                        "phase_degrees": float(phase),
+                    })
+    fig.colorbar(image, ax=axes, shrink=0.84, pad=0.02, label=r"$|T_{ab}|$")
     for suffix in ("png", "pdf"):
-        fig.savefig(args.output_dir / f"rephasing_pathway_mixing.{suffix}", dpi=400)
+        fig.savefig(args.output_dir / f"pathway_mixing_rp_nrp.{suffix}", dpi=400)
     plt.close(fig)
-    with (args.output_dir / "rephasing_pathway_mixing.csv").open("w", newline="", encoding="utf-8") as handle:
+    with (args.output_dir / "pathway_mixing_rp_nrp.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(report_rows[0]))
         writer.writeheader()
         writer.writerows(report_rows)
@@ -292,7 +306,8 @@ def main() -> None:
     frequencies = np.linspace(args.omega_min, args.omega_max, args.n_omega)
     model = exciton_dimer_model()
     zero_map = clean_dimer_parameter_map(model_args(args, np.zeros(2)))
-    pathways = retained_rephasing_pathways(model, zero_map, frequencies, args)
+    pathways = retained_pathways(model, zero_map, frequencies, args, "RP")
+    nrp_pathways = retained_pathways(model, zero_map, frequencies, args, "NRP")
 
     orange_accepted = trajectory(args.orange_run)
     green_accepted = trajectory(args.green_run)
@@ -329,11 +344,15 @@ def main() -> None:
     pathway_mixing(
         args.mixing_runs,
         ["T1: (-0.050, 0.006)", "T2: (0.040, 0.004)", "T3: (-0.030, 0.010)"],
-        [item.label for item in pathways],
+        {
+            "RP": [item.label for item in pathways],
+            "NRP": [item.label for item in nrp_pathways],
+        },
         args,
     )
-    (args.output_dir / "rephasing_pathway_labels.txt").write_text(
-        "\n".join(f"P{index + 1}: {item.label}" for index, item in enumerate(pathways)) + "\n",
+    (args.output_dir / "pathway_labels_rp_nrp.txt").write_text(
+        "RP\n" + "\n".join(f"P{index + 1}: {item.label}" for index, item in enumerate(pathways))
+        + "\n\nNRP\n" + "\n".join(f"P{index + 1}: {item.label}" for index, item in enumerate(nrp_pathways)) + "\n",
         encoding="utf-8",
     )
 

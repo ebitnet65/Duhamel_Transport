@@ -25,7 +25,7 @@ objective evaluations use the local third-order SAKE surrogate.
 
 ## Preserved artifacts
 
-- `figures/`: normalized recovery, spectral-evolution, pathway-mixing, and
+- `figures/`: normalized recovery, spectral-evolution, RP/NRP pathway-mixing, and
   animated-trajectory products;
 - `multi_target_summary.csv`: numerical recovery and transport diagnostics;
 - `multi_target_summary.tex`: compact manuscript table;

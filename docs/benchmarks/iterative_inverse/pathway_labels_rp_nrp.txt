@@ -1,0 +1,9 @@
+RP
+P1: RP-L-L+R+
+P2: RP-L-R+L+
+P3: RP-L-R+R+
+
+NRP
+P1: NRP-R+L-L+
+P2: NRP-R+L-R+
+P3: NRP-R+R-R+

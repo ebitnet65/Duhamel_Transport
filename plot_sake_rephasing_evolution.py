@@ -269,8 +269,8 @@ def pathway_mixing(
             image = axis.imshow(np.abs(matrix), origin="lower", cmap=light_blue, vmin=0.0, vmax=maximum)
             if sector_index == 0:
                 axis.set_title(label)
-            axis.set_xticks(range(3), ["P1", "P2", "P3"])
-            axis.set_yticks(range(3), ["P1", "P2", "P3"])
+            axis.set_xticks(range(3), ["GSB", "SE", "ESA"])
+            axis.set_yticks(range(3), ["GSB", "SE", "ESA"])
             if sector_index == 1:
                 axis.set_xlabel("Reference pathway")
             if target_index == 0:

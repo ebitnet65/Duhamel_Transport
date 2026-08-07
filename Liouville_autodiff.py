@@ -58,6 +58,10 @@ def _require_jax():
             "in the active environment, or use "
             "`finite_difference_liouvillian_derivatives` as the fallback backend."
         ) from exc
+    # Configure precision before any lambda arrays are constructed. Enabling
+    # x64 only inside a downstream model function is too late: the reference
+    # control vector would already have been created as float32.
+    jax.config.update("jax_enable_x64", True)
     return jax, jnp
 
 

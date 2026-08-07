@@ -1,0 +1,26 @@
+{
+  "initial_reference": [
+    0.0,
+    0.0
+  ],
+  "target": [
+    0.08,
+    0.008
+  ],
+  "recovered": [
+    0.08000164840941155,
+    0.007999640154312909
+  ],
+  "parameter_error_eV": 1.6872292394975935e-06,
+  "final_state_relative_error": 8.919465473149099e-05,
+  "local_transport_composition_error": 0.7975731596045711,
+  "recovered_vs_target_transport_error": 6.861575403498466e-05,
+  "accumulated_off_diagonal_fraction": 0.7024191631475403,
+  "iterations": 6,
+  "accepted_steps": 6,
+  "direct_target_evaluations": 1,
+  "direct_trial_validations": 6,
+  "derivative_cache_seconds": 2.227182625036221,
+  "final_radius": 0.01,
+  "converged": true
+}

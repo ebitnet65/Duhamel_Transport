@@ -1,0 +1,9 @@
+RP
+GSB: RP-L-L+R+
+SE: RP-L-R+L+
+ESA: RP-L-R+R+
+
+NRP
+GSB: NRP-R+L-L+
+SE: NRP-R+L-R+
+ESA: NRP-R+R-R+

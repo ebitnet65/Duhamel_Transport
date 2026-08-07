@@ -1,0 +1,19 @@
+{
+  "machine": {
+    "model": "Mac Studio",
+    "model_identifier": "Mac14,13",
+    "chip": "Apple M2 Max",
+    "cpu_cores": 12,
+    "performance_cores": 8,
+    "efficiency_cores": 4,
+    "unified_memory_gb": 64,
+    "architecture": "arm64"
+  },
+  "software": {
+    "python": "3.13.5",
+    "jax": "0.11.0",
+    "jax_backend": "cpu",
+    "numpy": "2.1.3",
+    "scipy": "1.15.3"
+  }
+}

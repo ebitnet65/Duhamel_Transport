@@ -15,6 +15,7 @@ from pathlib import Path
 import argparse
 import csv
 import json
+import time
 
 import numpy as np
 import scipy.optimize
@@ -167,16 +168,20 @@ def main() -> None:
     derivative_template, derivative_seconds, metadata = load_derivative_cache(args.derivative_cache)
     validate_derivative_cache(metadata, initial_map, initial_args)
     initial_derivatives = affine_derivatives_at_reference(derivative_template, model, initial_map)
+    initial_chart_start = time.perf_counter()
     initial_sector_data, _, _ = build_sector_data(
         model, initial_map, omega1_values, omega3_values, sectors, initial_derivatives, args
     )
+    initial_chart_seconds = time.perf_counter() - initial_chart_start
     pathways_by_sector = [(data.sector, data.pathways) for data in initial_sector_data]
 
     target_args = args_at_reference(args, target)
     target_map = clean_dimer_parameter_map(target_args)
+    target_direct_start = time.perf_counter()
     target_states = direct_states(
         model, target_map, pathways_by_sector, omega1_values, omega3_values, args
     )
+    target_direct_seconds = time.perf_counter() - target_direct_start
 
     reference = initial_reference.copy()
     chart = Chart(initial_map, initial_sector_data)
@@ -188,8 +193,10 @@ def main() -> None:
     radius = args.initial_radius
     rows: list[dict[str, float | int | bool]] = []
     direct_validations = 0
+    iterative_start = time.perf_counter()
 
     for iteration in range(args.max_iterations):
+        iteration_start = time.perf_counter()
         scale = np.array([control.scale for control in chart.parameter_map.controls])
         target_displacement = (target - reference) / scale
         if np.linalg.norm(target_displacement) <= args.parameter_tolerance:
@@ -215,6 +222,7 @@ def main() -> None:
         x0_norm = np.linalg.norm(x0)
         if x0_norm > 0.8 * radius:
             x0 *= 0.8 * radius / x0_norm
+        optimizer_start = time.perf_counter()
         result = scipy.optimize.minimize(
             objective,
             x0,
@@ -223,6 +231,7 @@ def main() -> None:
             constraints=(constraint,),
             options={"ftol": 1e-12, "maxiter": 200},
         )
+        optimizer_seconds = time.perf_counter() - optimizer_start
         step = np.asarray(result.x, dtype=float)
         step_norm = float(np.linalg.norm(step))
         if step_norm > radius * (1.0 + 1e-6):
@@ -231,9 +240,11 @@ def main() -> None:
         trial_reference = reference + scale * step
         trial_args = args_at_reference(args, trial_reference)
         trial_map = clean_dimer_parameter_map(trial_args)
+        validation_start = time.perf_counter()
         trial_states = direct_states(
             model, trial_map, pathways_by_sector, omega1_values, omega3_values, args
         )
+        direct_validation_seconds = time.perf_counter() - validation_start
         direct_validations += 1
         trial_error = normalized_squared_error(target_states, trial_states)
         predicted_trial_error = objective(step)
@@ -242,7 +253,7 @@ def main() -> None:
         rho = actual_reduction / predicted_reduction
         accepted = bool(actual_reduction > 0.0 and rho >= args.acceptance_threshold)
 
-        rows.append({
+        row = {
             "iteration": iteration,
             "reference_J": float(reference[0]),
             "reference_k": float(reference[1]),
@@ -255,16 +266,27 @@ def main() -> None:
             "direct_trial_error": float(np.sqrt(trial_error)),
             "rho": float(rho),
             "accepted": accepted,
-        })
+            "optimizer_seconds": optimizer_seconds,
+            "direct_validation_seconds": direct_validation_seconds,
+            "transport_projection_seconds": 0.0,
+            "chart_rebuild_seconds": 0.0,
+            "iteration_total_seconds": 0.0,
+            "cumulative_iterative_seconds": 0.0,
+        }
 
         if not accepted:
             radius *= 0.5
+            row["iteration_total_seconds"] = time.perf_counter() - iteration_start
+            row["cumulative_iterative_seconds"] = time.perf_counter() - iterative_start
+            rows.append(row)
             if radius < args.minimum_radius:
                 break
             continue
 
+        projection_start = time.perf_counter()
         step_transport = exact_step_transport(reference_states, trial_states, args.rcond)
         composed_local_transport = step_transport @ composed_local_transport
+        row["transport_projection_seconds"] = time.perf_counter() - projection_start
         reference = trial_reference
         current_error = trial_error
         reference_states = trial_states
@@ -273,14 +295,20 @@ def main() -> None:
         elif rho < 0.25:
             radius = max(0.5 * radius, args.minimum_radius)
 
+        chart_rebuild_start = time.perf_counter()
         accepted_derivatives = affine_derivatives_at_reference(derivative_template, model, trial_map)
         sector_data, _, _ = build_sector_data(
             model, trial_map, omega1_values, omega3_values, sectors, accepted_derivatives, args
         )
+        row["chart_rebuild_seconds"] = time.perf_counter() - chart_rebuild_start
         chart = Chart(trial_map, sector_data)
         reference_states = [data.reference_pathway_states for data in chart.sectors]
         current_error = normalized_squared_error(target_states, reference_states)
+        row["iteration_total_seconds"] = time.perf_counter() - iteration_start
+        row["cumulative_iterative_seconds"] = time.perf_counter() - iterative_start
+        rows.append(row)
 
+    iterative_total_seconds = time.perf_counter() - iterative_start
     final_parameter_error = float(np.linalg.norm(reference - target))
     write_csv(args.output_dir / "iterations.csv", rows)
     exact_target_transport = exact_step_transport(initial_reference_states, target_states, args.rcond)
@@ -320,6 +348,13 @@ def main() -> None:
         "direct_target_evaluations": 1,
         "direct_trial_validations": direct_validations,
         "derivative_cache_seconds": derivative_seconds,
+        "initial_chart_seconds": initial_chart_seconds,
+        "target_direct_response_seconds": target_direct_seconds,
+        "iterative_total_seconds": iterative_total_seconds,
+        "optimizer_total_seconds": sum(float(row["optimizer_seconds"]) for row in rows),
+        "direct_validation_total_seconds": sum(float(row["direct_validation_seconds"]) for row in rows),
+        "transport_projection_total_seconds": sum(float(row["transport_projection_seconds"]) for row in rows),
+        "chart_rebuild_total_seconds": sum(float(row["chart_rebuild_seconds"]) for row in rows),
         "final_radius": radius,
         "converged": final_parameter_error <= args.omega0 * args.parameter_tolerance,
     }

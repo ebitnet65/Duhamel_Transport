@@ -56,6 +56,8 @@ The recommended collaborator entry points are:
 - `docs/benchmarks/iterative_inverse/README.md`: documents the archived
   benchmark data, dense spectral-evolution products, and the sector-selective
   pathway result: GSB--SE mixing in RP versus GSB--ESA mixing in NRP.
+- `docs/benchmarks/iterative_timing/README.md`: separates the cost of one direct
+  response from initial-chart construction and every accepted recovery step.
 - `docs/autodiff_nodal_structure.md`: graph/nodal view of how autodiff sees
   `lambda -> L(lambda)`, how Duhamel consumes Liouvillian derivatives, and how
   the transport matrix produces final signals.

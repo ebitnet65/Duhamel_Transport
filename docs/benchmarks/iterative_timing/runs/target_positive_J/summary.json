@@ -1,0 +1,33 @@
+{
+  "initial_reference": [
+    0.0,
+    0.0
+  ],
+  "target": [
+    0.08,
+    0.008
+  ],
+  "recovered": [
+    0.07996681894278176,
+    0.008058478266971994
+  ],
+  "parameter_error_eV": 6.723607860492548e-05,
+  "final_state_relative_error": 0.002522521748508919,
+  "local_transport_composition_error": 1.4952037069383712,
+  "recovered_vs_target_transport_error": 0.0013674874221528141,
+  "accumulated_off_diagonal_fraction": 0.706719279555865,
+  "iterations": 7,
+  "accepted_steps": 7,
+  "direct_target_evaluations": 1,
+  "direct_trial_validations": 7,
+  "derivative_cache_seconds": 2.3167820420349017,
+  "initial_chart_seconds": 8.80645666597411,
+  "target_direct_response_seconds": 2.129710291046649,
+  "iterative_total_seconds": 78.92517891700845,
+  "optimizer_total_seconds": 0.33229550009127706,
+  "direct_validation_total_seconds": 15.275247458834201,
+  "transport_projection_total_seconds": 0.008990165952127427,
+  "chart_rebuild_total_seconds": 63.26501404197188,
+  "final_radius": 0.01,
+  "converged": true
+}

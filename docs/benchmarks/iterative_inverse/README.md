@@ -43,6 +43,10 @@ From the repository root, run:
 XLA_PYTHON_CLIENT_PREALLOCATE=false bash run_sake_iterative_suite.sh
 ```
 
+For a narrative, cell-by-cell reproduction with the recovered-parameter table,
+normalized publication figure, and final pathway-mixing heat maps, execute
+`notebooks/04_iterative_sake_target_recovery.ipynb`.
+
 Raw generated outputs are written under the ignored
 `dimer_backend_benchmarks/` directory. The selected results in this directory
 are a version-controlled snapshot for provenance and manuscript preparation.

@@ -40,6 +40,25 @@ stored as `accumulated_transport`. The separately stored
 bases are not exactly transitive, so the product of local maps can differ
 substantially from the global projection when out-of-basis residuals accumulate.
 
+## Sector-selective pathway mixing
+
+The retained three-pathway basis is ordered as ground-state bleach (GSB),
+stimulated emission (SE), and excited-state absorption (ESA) in both the RP and
+NRP blocks.  The magnitude plots use a single color scale across both sectors
+and all three targets, so RP and NRP matrix elements can be compared directly.
+
+The transport exposes a sector dependence that is largely hidden after the
+pathways are summed into the observable spectrum:
+
+- in the RP sector, the dominant off-diagonal elements mix GSB and SE, while
+  ESA remains comparatively isolated;
+- in the NRP sector, the principal off-diagonal elements mix GSB and ESA,
+  while SE remains unmixed and is only renormalized.
+
+These statements refer to the magnitude of the global initial-to-target
+transport matrix.  The CSV retains the complex matrix elements and their phases
+for analyses in which interference between transported pathways is required.
+
 ## Reproduction
 
 From the repository root, run:

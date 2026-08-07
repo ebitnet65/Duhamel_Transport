@@ -350,9 +350,13 @@ def main() -> None:
         },
         args,
     )
+    physical_labels = ("GSB", "SE", "ESA")
     (args.output_dir / "pathway_labels_rp_nrp.txt").write_text(
-        "RP\n" + "\n".join(f"P{index + 1}: {item.label}" for index, item in enumerate(pathways))
-        + "\n\nNRP\n" + "\n".join(f"P{index + 1}: {item.label}" for index, item in enumerate(nrp_pathways)) + "\n",
+        "RP\n" + "\n".join(
+            f"{physical_labels[index]}: {item.label}" for index, item in enumerate(pathways)
+        ) + "\n\nNRP\n" + "\n".join(
+            f"{physical_labels[index]}: {item.label}" for index, item in enumerate(nrp_pathways)
+        ) + "\n",
         encoding="utf-8",
     )
 

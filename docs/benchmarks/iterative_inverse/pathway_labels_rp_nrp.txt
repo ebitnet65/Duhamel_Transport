@@ -1,9 +1,9 @@
 RP
-P1: RP-L-L+R+
-P2: RP-L-R+L+
-P3: RP-L-R+R+
+GSB: RP-L-L+R+
+SE: RP-L-R+L+
+ESA: RP-L-R+R+
 
 NRP
-P1: NRP-R+L-L+
-P2: NRP-R+L-R+
-P3: NRP-R+R-R+
+GSB: NRP-R+L-L+
+SE: NRP-R+L-R+
+ESA: NRP-R+R-R+

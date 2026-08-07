@@ -17,7 +17,7 @@ common=(
   --J-max 0.15
   --k-min 0.0
   --k-max 0.03
-  --n-omega 8
+  --n-omega 20
   --n-quad 4
   --max-iterations 30
   --initial-radius 0.005
@@ -28,20 +28,20 @@ common=(
 
 python fit_sake_dimer_iterative.py "${common[@]}" \
   --target-J -0.100 --target-k 0.012 \
-  --output-dir dimer_backend_benchmarks/iterative_inverse_target_bounded_n8
+  --output-dir dimer_backend_benchmarks/iterative_inverse_target_bounded_n20
 
 python fit_sake_dimer_iterative.py "${common[@]}" \
   --target-J 0.080 --target-k 0.008 \
-  --output-dir dimer_backend_benchmarks/iterative_inverse_positive_J_n8
+  --output-dir dimer_backend_benchmarks/iterative_inverse_positive_J_n20
 
 python fit_sake_dimer_iterative.py "${common[@]}" \
   --target-J -0.060 --target-k 0.020 \
-  --output-dir dimer_backend_benchmarks/iterative_inverse_mixed_n8
+  --output-dir dimer_backend_benchmarks/iterative_inverse_mixed_n20
 
 python plot_sake_multi_target_recovery.py \
-  dimer_backend_benchmarks/iterative_inverse_target_bounded_n8 \
-  dimer_backend_benchmarks/iterative_inverse_positive_J_n8 \
-  dimer_backend_benchmarks/iterative_inverse_mixed_n8 \
+  dimer_backend_benchmarks/iterative_inverse_target_bounded_n20 \
+  dimer_backend_benchmarks/iterative_inverse_positive_J_n20 \
+  dimer_backend_benchmarks/iterative_inverse_mixed_n20 \
   --omega0 2.0 \
   --normalize-controls \
-  --output-dir dimer_backend_benchmarks/iterative_inverse_multi_target_n8
+  --output-dir dimer_backend_benchmarks/iterative_inverse_multi_target_n20

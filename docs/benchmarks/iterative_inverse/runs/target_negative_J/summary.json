@@ -8,18 +8,18 @@
     0.012
   ],
   "recovered": [
-    -0.10005274464971216,
-    0.012038068768332544
+    -0.10002611179429781,
+    0.012067792527643452
   ],
-  "parameter_error_eV": 6.504789924059478e-05,
-  "final_state_relative_error": 0.003403777431862801,
-  "local_transport_composition_error": 3.4967078297665966,
-  "recovered_vs_target_transport_error": 0.005234736904084961,
-  "accumulated_off_diagonal_fraction": 0.7219828423151963,
-  "iterations": 10,
-  "accepted_steps": 10,
+  "parameter_error_eV": 7.264745422751584e-05,
+  "final_state_relative_error": 0.0022480911083775147,
+  "local_transport_composition_error": 4.225392568878575,
+  "recovered_vs_target_transport_error": 0.0019172125225968043,
+  "accumulated_off_diagonal_fraction": 0.7082512726094239,
+  "iterations": 8,
+  "accepted_steps": 8,
   "direct_target_evaluations": 1,
-  "direct_trial_validations": 10,
+  "direct_trial_validations": 8,
   "derivative_cache_seconds": 2.227182625036221,
   "final_radius": 0.01,
   "converged": true

@@ -9,6 +9,53 @@ This branch is the SAKE/autodiff dimer release-development line. It contains
 the four-level `su(2) x su(2)` exciton-dimer model, JAX/autodiff Liouvillian
 derivatives, and Duhamel transport expansions through third order.
 
+## Covariant Geometry Test Branch
+
+The branch `codex/bloch-geometry-autodiff` is a separate development branch for
+the covariant SAKE geometry layer.  It uses a driven two-level optical Bloch
+model with amplitude damping because this model has a closed-form stationary
+state and therefore gives a clean benchmark for autodiff geometry.
+
+The validated workflow is:
+
+\[
+\lambda
+\rightarrow
+\mathcal L(\lambda)
+\rightarrow
+\rho_{\mathrm{ss}}(\lambda)
+\rightarrow
+r(\lambda),h(\lambda)
+\rightarrow
+G_{\mu\nu}(\lambda),F_{\mu\nu}(\lambda),\Gamma^\alpha_{\mu\nu}(\lambda).
+\]
+
+The branch includes:
+
+- `optical_bloch_geometry.py`: closed-form, symbolic, finite-difference, and
+  JAX/Liouvillian geometry backends.
+- `test_optical_bloch_geometry.py`: validation tests comparing the closed-form
+  and Liouvillian-autodiff routes.
+- `demo_optical_bloch_geometry.py`: command-line diagnostic driver.
+- `docs/optical_bloch_geometry_test_branch.md`: model definition, equations,
+  backend summary, and next geodesic-transport step.
+
+Run the focused validation:
+
+```bash
+pytest -q test_optical_bloch_geometry.py
+```
+
+Generate a diagnostic output directory:
+
+```bash
+python demo_optical_bloch_geometry.py \
+  --omega 0.35 \
+  --delta 0.12 \
+  --gamma 0.08 \
+  --output-dir optical_bloch_geometry_demo
+```
+
 The finite-difference-only two-level-system archive for the JCP3 manuscript is
 maintained separately on `codex/jcp3-finite-difference`.
 

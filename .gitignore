@@ -19,6 +19,7 @@ exciton_dimer_spectra_diagnostics*/
 dimer_duhamel_transport_demo*/
 dimer_duhamel_transport_production*/
 dimer_backend_benchmarks*/
+optical_bloch_geometry_demo*/
 figures/
 
 # Local environments

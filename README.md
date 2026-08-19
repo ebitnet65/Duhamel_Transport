@@ -1,8 +1,9 @@
-# SAKE-DT: Duhamel Transport
+# SAKE: Spectral Autodiff Kernel Expansion for Liouvillian Response Transport
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21793438.svg)](https://doi.org/10.5281/zenodo.21793438)
+[![previous release DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21793438.svg)](https://doi.org/10.5281/zenodo.21793438)
 
-**SAKE-DT** is a Spectral Autodiff Kernel Expansion framework for Duhamel
+**SAKE-DT** is the supporting software for the paper named above: a Spectral
+Autodiff Kernel Expansion framework for Duhamel
 transport of Liouville-space nonlinear-response pathways.
 
 This branch is the SAKE/autodiff dimer release-development line. It contains
@@ -22,6 +23,20 @@ canonical lambda-zero Liouville pathway basis:
 The resulting transport matrices `T_ab(lambda)` quantify how phase-matched
 pathway components deform under a displaced Liouvillian.
 
+## Reproducible environment
+
+Create an isolated Python environment and install the validated dependencies:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+The v0.2 archive was validated with Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3,
+Matplotlib 3.10.0, JAX/jaxlib 0.11.0, and pytest 8.3.4.
+
 ## SAKE Release
 
 The branch release note is:
@@ -31,10 +46,12 @@ The branch release note is:
 Suggested release tag:
 
 ```text
-v0.1-sake-autodiff-dimer
+v0.2-sake-autodiff-dimer
 ```
 
-Release DOI: [10.5281/zenodo.21793438](https://doi.org/10.5281/zenodo.21793438).
+The version-specific DOI will be inserted after the Zenodo v0.2 draft reserves
+it. The previous v0.1 release remains available at
+[10.5281/zenodo.21793438](https://doi.org/10.5281/zenodo.21793438).
 
 ## Beta Notebooks
 
@@ -647,6 +664,12 @@ The optional bridge module `Liouville_qutip_adapter.py` provides
 QuTiP `Qobj` instances or ordinary array-like matrices, converts them at the
 boundary, and returns a `LiouvilleModel`. This keeps QuTiP interoperability
 available without making QuTiP a required dependency.
+
+## License
+
+The code, benchmark data, figures, notebooks, and supporting documentation are
+licensed under the [Creative Commons Attribution 4.0 International
+License](LICENSE.md) (CC BY 4.0).
 
 ## Notes
 

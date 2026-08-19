@@ -1,6 +1,6 @@
-# SAKE-DT Autodiff Dimer Release
+# SAKE-DT Autodiff Dimer v0.2 Release
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21793438.svg)](https://doi.org/10.5281/zenodo.21793438)
+[![previous release DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21793438.svg)](https://doi.org/10.5281/zenodo.21793438)
 
 **SAKE-DT** stands for:
 
@@ -21,19 +21,19 @@ codex/jcp3-finite-difference
 
 ## Citation
 
-Release DOI:
+Version-specific v0.2 DOI:
 
 ```text
-10.5281/zenodo.21793438
+[reserved in the Zenodo v0.2 draft]
 ```
 
-DOI link: <https://doi.org/10.5281/zenodo.21793438>
+Previous v0.1 DOI: <https://doi.org/10.5281/zenodo.21793438>
 
 Suggested citation:
 
 ```text
-Bittner, E. R. SAKE-DT v0.1: Spectral Autodiff Kernel Expansion for
-Duhamel Transport. Zenodo. https://doi.org/10.5281/zenodo.21793438
+Bittner, E. R. SAKE-DT v0.2: Spectral Autodiff Kernel Expansion for
+Duhamel Transport. Zenodo. [version DOI]
 ```
 
 ## Suggested Release Metadata
@@ -41,13 +41,13 @@ Duhamel Transport. Zenodo. https://doi.org/10.5281/zenodo.21793438
 Suggested GitHub tag:
 
 ```text
-v0.1-sake-autodiff-dimer
+v0.2-sake-autodiff-dimer
 ```
 
 Suggested release title:
 
 ```text
-SAKE-DT v0.1: Spectral Autodiff Kernel Expansion for Duhamel Transport
+SAKE-DT v0.2: Spectral Autodiff Kernel Expansion for Duhamel Transport
 ```
 
 Suggested short description:

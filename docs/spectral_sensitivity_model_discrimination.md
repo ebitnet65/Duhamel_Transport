@@ -194,3 +194,47 @@ tangent space. Increasing the grid density, using realistic correlated
 experimental noise, profiling boundary parameters, and validating spectral
 windows against independent held-out acquisitions remain open work before
 experimental claims.
+
+## Adversarial stress test
+
+The companion `run_spectral_stress_test.py` probes the weak point directly:
+whether a noisy dark-trap signal is distinguishable from an added local
+dephasing rate after each reduced candidate refits the common dimer controls.
+It uses a 5 x 5 grid, short/long/joint/all waiting-time sets, four equal-budget
+nine-pixel spectral windows plus the full 25-pixel grid, trap rates 0, 0.0003,
+and 0.003, relative noise 0.1%, 1%, and 5%, and 64 fixed random seeds. The
+dephasing-rate projection is nonnegative; a negative rate cannot absorb a
+hidden perturbation. The Monte Carlo comparison uses tangent-space residuals
+and an AIC penalty for B's extra parameter. It is a local linear stress test,
+not a replacement for nonlinear likelihood inference.
+
+At `kd=0.003`, 5% relative noise, and all three waits, the full grid has
+expected tangent-residual noncentrality `1.19` for A and `0.021` after B has
+refit its nonnegative dephasing rate. The trap and dephasing directions have
+cosine `0.991`. Across 64 seeds, B beats A's penalized score in `41%` of
+replicates. With zero trap, B wins in `6%` of full-grid replicates, reflecting
+the finite-sample false-selection rate. At 0.1% relative noise, the same
+moderate trap yields noncentrality `2173` for A and `50.5` after B, and B beats
+A in every replicate. Thus the stress test finds both a clear-detection
+regime and a regime where the data do not reliably establish even the extra
+dephasing fit, much less the microscopic trap identity.
+
+Equal-budget window results vary materially. At 5% noise with early+late
+waits, the moderate-trap B-over-A selection rate is `22%` for the center
+window, `28%` for the cross-peak window, and `33%` for the full grid. Adding
+the intermediate wait raises the full-grid rate to `41%`; it does not overcome
+the high-noise degeneracy. For a weak trap (`kd=0.0003`) and 0.1% noise, the
+cross-peak window selects B over A in `97%` of replicates while the full grid
+does so in all replicates. At 1% noise the weak-trap selection frequency falls
+to about `16--20%`. These are model-conditional design results; realistic
+correlated noise and nonlinear held-out acquisitions remain needed before
+using them to choose an experiment.
+
+Regenerate the stress-test data, plot, and 180 diagnostics with:
+
+```bash
+python run_spectral_stress_test.py \
+  --output-dir docs/benchmarks/spectral_stress_test \
+  --nfreq 5 --waiting-times 0.2 1.0 4.0 \
+  --relative-noise 0.001 0.01 0.05 --nmc 64
+```

@@ -1,0 +1,28 @@
+{
+  "model": "dimer_spectral_observable.build_dimer_spectral_observable",
+  "parameters": {
+    "J12": 0.025,
+    "k12": 0.014,
+    "gamma_phi": 0.022
+  },
+  "waiting_time": 1.0,
+  "frequency_grid": {
+    "min": 0.9,
+    "max": 1.28,
+    "points_per_axis": 21,
+    "direct_forward_evaluation": true
+  },
+  "eta": 0.035,
+  "noise_sigma_for_information_modes": 0.001,
+  "parameter_reference_scales": [
+    0.05,
+    0.015,
+    0.025
+  ],
+  "jacobian": "JAX jacfwd of complex RP+NRP observable; parameter axis moved to leading position",
+  "source_benchmark_sha256": {
+    "spectral_sensitivity_benchmark.npz": "da09b7e120e45453453acd1712f9f7162d6c4ae3d8159492da5343ff939021cf",
+    "spectral_sensitivity_benchmark.json": "a922a5cbcfce15c83c029839691c74984e10d8d5b01667f95e6ad6133154e679"
+  },
+  "note": "Dense model-evaluated visualization grid; not an experimental frequency sampling claim."
+}

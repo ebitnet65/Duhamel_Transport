@@ -975,3 +975,18 @@ available without making QuTiP a required dependency.
 
 Generated plots and diagnostic output directories are ignored by git. Recreate
 them with the run scripts above.
+
+## Dark-State Truth and Best Transported Dimer
+
+The paper comparison in
+[`publication_artifacts/dark_state_transport/README.md`](publication_artifacts/dark_state_transport/README.md)
+uses a terminal optically dark sink as the truth and the original three-control
+dimer as the sink-free Duhamel-transport candidate. The dedicated production
+driver writes publication PDFs, PNG previews, and auditable complex spectra:
+
+```bash
+MPLCONFIGDIR=/tmp/mpl-dark-state python publication_artifacts/dark_state_transport/generate_dark_state_transport_figures.py \
+  --output-dir publication_artifacts/dark_state_transport \
+  --nfreq 21 --projection-nfreq 5 --waiting-times 0.2 1.0 4.0 \
+  --n-quad 2 --order 3 --trap-rate 0.003
+```

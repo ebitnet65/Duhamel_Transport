@@ -179,6 +179,14 @@ predictions are recorded in the JSON. The recorded targeted suite passed
 `17/17` tests across the new trap tests and existing dimer spectral,
 observability, autodiff, and endpoint-inversion tests.
 
+Independent B and C fits at each of the three `kd=0.003` truth slices are
+also saved. C recovers all four parameters essentially exactly at every wait;
+B reduces the `t2=0.2` weighted SSE to `593` but it grows to `2.35e5` by
+`t2=4.0`, while its fitted extra dephasing rises from `0.00311` to `0.00331`.
+These single-slice fits support the same point as the joint fits: B can absorb
+part of the short-time response, but cannot represent the population-loss
+signature consistently over waiting time.
+
 The central qualitative result is conditional on the current coarse grid and
 noise level: structural mismatch generates apparent parameter drift, and
 complementary waits change how much of the hidden channel lies in the fitted

@@ -163,6 +163,11 @@ def run(args):
             yp=np.asarray(models[m](x,float(t)))
             fit["heldout"][str(float(t))]=float(np.linalg.norm(yp-y)/max(np.linalg.norm(y),1e-30))
         fit["residual_maps"]={str(float(t)):{"real":(np.asarray(models[m](fit["x"] if m!="A" else jnp.r_[fit["x"],0.],float(t)))-truth[float(t)]).real.tolist(),"imag":(np.asarray(models[m](fit["x"] if m!="A" else jnp.r_[fit["x"],0.],float(t)))-truth[float(t)]).imag.tolist()} for t in times}
+    single_candidate_fits={}
+    for m in "BC":
+        single_candidate_fits[m]={}
+        for t in times:
+            single_candidate_fits[m][str(float(t))]=_fit_model(models,truth,[float(t)],m,args.sigma,args.max_nfev)
 
     # Reproducible complex Gaussian noise recovery, single-slice vs joint-time.
     rng_seeds=[11,29,47]
@@ -245,6 +250,7 @@ def run(args):
       "baseline_noise_recovery":{"seeds":rng_seeds,"results":noise_recovery},
       "reverse_overparameterization":{"truth":"A (kd=0)","fit_model":"C","fit":fit_serial(reverse_fit),"boundary_interpretation":"A symmetric interval is inappropriate at kd=0; the point estimate and conditional information are reported, while formal evidence requires a one-sided profile or boundary-aware likelihood ratio."},
       "joint_model_comparison":{"truth_kd":kd_ref,"fits":{m:fit_serial(f) for m,f in model_fits.items()},"interpretation":"AIC is reported as a noise-scaled residual plus 2p; it is a local Gaussian diagnostic, not proof of microscopic mechanism."},
+      "single_time_BC_fits_at_joint_truth":{"truth_kd":kd_ref,"fits":{m:{t:fit_serial(f) for t,f in per_time.items()} for m,per_time in single_candidate_fits.items()}},
       "limitations":["The optical response uses the exact active-block projection of a terminal dark sink; the sink population is validated with the full trace-preserving generator.","Confidence intervals use local linear covariance and are unreliable at bounds or for strongly nonlinear/weakly identified directions.","AIC assumes independent Gaussian Cartesian real/imaginary noise with the configured common sigma."]}
     (out/"spectral_sensitivity_benchmark.json").write_text(json.dumps(report,indent=2,allow_nan=True)+"\n")
 

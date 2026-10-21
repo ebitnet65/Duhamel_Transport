@@ -1,0 +1,72 @@
+{
+  "git": {
+    "available": true,
+    "branch": "codex/bloch-geometry-autodiff",
+    "commit": "0ca8b3704dc0ecf81fde24890d1849e5ac267cd0",
+    "dirty": true,
+    "root": "/Users/bittner_1/Documents/ChatGPT/SAKE-DT Development/Duhamel_Transport"
+  },
+  "host": {
+    "architecture": "arm64",
+    "hostname": "NSMPHYSBittnerMacStudio",
+    "logical_cpu_count": 12,
+    "os": "Darwin",
+    "os_release": "25.6.0",
+    "processor": "arm"
+  },
+  "packages": {
+    "jax": {
+      "available": true,
+      "backend": "cpu",
+      "devices": [
+        {
+          "device_kind": "cpu",
+          "id": 0,
+          "platform": "cpu"
+        }
+      ],
+      "version": "0.11.0",
+      "x64_enabled": true
+    },
+    "numpy": "2.1.3",
+    "scipy": "1.15.3"
+  },
+  "python": {
+    "executable": "/opt/anaconda3/bin/python",
+    "implementation": "CPython",
+    "version": "3.13.5"
+  },
+  "recorded_at": "2026-10-21T16:23:02.835694+00:00",
+  "run": {
+    "command": [
+      "python",
+      "/Users/bittner_1/Documents/ChatGPT/SAKE-DT Development/Duhamel_Transport/benchmark_fourier_artifact_routes.py",
+      "--output-dir",
+      "/Users/bittner_1/Documents/ChatGPT/SAKE-DT Development/Duhamel_Transport/fourier_artifact_robustness_benchmark",
+      "--strengths",
+      "0",
+      "0.0005",
+      "0.001",
+      "0.002",
+      "0.005",
+      "0.01",
+      "--n-omega",
+      "3",
+      "--vertices",
+      "4",
+      "--refinement-factors",
+      "1",
+      "2"
+    ],
+    "elapsed_seconds": 36.810531,
+    "exit_code": 0,
+    "finished_at": "2026-10-21T16:23:02.779382+00:00",
+    "model": {
+      "benchmark": "fourier_artifact_routes"
+    },
+    "seeds": {},
+    "started_at": "2026-10-21T16:22:25.968851+00:00",
+    "working_directory": "/Users/bittner_1/Documents/ChatGPT/SAKE-DT Development/Duhamel_Transport"
+  },
+  "schema_version": 1
+}

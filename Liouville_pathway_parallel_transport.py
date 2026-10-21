@@ -66,6 +66,10 @@ class PathwayFrameTransportResult:
         return self.cumulative_transport_maps[-1]
 
     @property
+    def final_frame(self) -> Array:
+        return self.aligned_frames[-1]
+
+    @property
     def final_projection(self) -> Array:
         return self.cumulative_projection_maps[-1]
 
@@ -124,8 +128,12 @@ def _validate_path(path: Array) -> Array:
         raise ValueError("path must have shape (n_vertices, n_controls), n_vertices >= 2")
     if not np.all(np.isfinite(vertices)):
         raise ValueError("path contains non-finite values")
-    if np.any(np.linalg.norm(np.diff(vertices, axis=0), axis=1) == 0.0):
-        raise ValueError("adjacent path vertices must be distinct")
+    segment_lengths = np.linalg.norm(np.diff(vertices, axis=0), axis=1)
+    zero_segments = segment_lengths == 0.0
+    if np.any(zero_segments) and not np.all(zero_segments):
+        raise ValueError(
+            "adjacent path vertices must be distinct unless the entire path is constant"
+        )
     return vertices
 
 

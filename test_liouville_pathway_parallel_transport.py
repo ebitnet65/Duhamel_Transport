@@ -132,6 +132,17 @@ def test_rank_loss_and_orthogonal_adjacent_subspaces_are_rejected():
         lppt.parallel_transport_pathway_frames(path, frames=orthogonal)
 
 
+def test_constant_path_is_identity_but_isolated_duplicate_is_rejected():
+    constant = np.asarray([[0.2], [0.2], [0.2]])
+    result = lppt.parallel_transport_pathway_frames(constant, frame_fn=smooth_frame)
+    np.testing.assert_allclose(result.final_transport, np.eye(2), atol=2e-15)
+    np.testing.assert_allclose(result.final_frame, result.aligned_frames[0], atol=2e-15)
+    with pytest.raises(ValueError, match="entire path is constant"):
+        lppt.parallel_transport_pathway_frames(
+            np.asarray([[0.0], [0.0], [0.1]]), frame_fn=smooth_frame
+        )
+
+
 def test_existing_dimer_pathway_frames_use_ordered_model_adapter():
     model = exciton_dimer_model()
     parameter_map = exciton_dimer_parameter_map(

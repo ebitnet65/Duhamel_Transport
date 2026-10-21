@@ -1,0 +1,1252 @@
+{
+  "artifact_family": "symmetric_exponential_apodization",
+  "artifact_strength_units": "inverse model time",
+  "discrepancy": {
+    "artifact_strengths": [
+      0.0,
+      0.0005,
+      0.001,
+      0.002,
+      0.005,
+      0.01
+    ],
+    "diagnostics": [
+      {
+        "artifact_strength": 0.0,
+        "downstream_changes": {},
+        "endpoint": [
+          0.02499999991083327,
+          0.013999999356321052,
+          0.02200000009708139
+        ],
+        "endpoint_bias": 6.570373595462012e-10,
+        "failure_reasons": [],
+        "generalized_effective_rank": 3,
+        "generalized_eigenvalues": [
+          27330341.911361262,
+          594104.7020967439,
+          2789.05575556302
+        ],
+        "information_metric": [
+          [
+            54560902.347031154,
+            -8316288.214957543,
+            -8481945.392765475
+          ],
+          [
+            -8316288.214957543,
+            5037552.635702372,
+            14100161.960671531
+          ],
+          [
+            -8481945.392765475,
+            14100161.960671531,
+            46293599.84720496
+          ]
+        ],
+        "jacobian_condition_number": 23.789145335622532,
+        "jacobian_rank": 3,
+        "jacobian_singular_values": [
+          7976.583280551189,
+          6492.591591412893,
+          335.3034826605069
+        ],
+        "local_covariance": [
+          [
+            1.1884218330104565e-33,
+            9.170774422367755e-33,
+            -2.5755023580479426e-33
+          ],
+          [
+            9.170774422367768e-33,
+            8.479447292857276e-32,
+            -2.4146529919734673e-32
+          ],
+          [
+            -2.5755023580479488e-33,
+            -2.4146529919734703e-32,
+            7.107776195190807e-33
+          ]
+        ],
+        "optimizer_success": true,
+        "orthogonal_residual_fraction": 6.352737645445991e-07,
+        "physical_endpoint_bias": 4.005755142855661e-09,
+        "physical_uncertainty_rms": 1.9374963598115753e-15,
+        "relative_orthogonal_residual": 8.019219844433296e-16,
+        "relative_residual": 1.262325046617018e-09,
+        "reliable": true,
+        "replicate_seed": null,
+        "residual_norm": 6.223219562612548e-07,
+        "tangent_orthogonal_residual_norm": 3.9534481191284667e-13,
+        "tangent_parallel_residual_norm": 6.223219562611286e-07
+      },
+      {
+        "artifact_strength": 0.0005,
+        "downstream_changes": {},
+        "endpoint": [
+          0.02467998984071059,
+          0.012536932583365176,
+          0.0224703829357443
+        ],
+        "endpoint_bias": 0.001569787525083047,
+        "failure_reasons": [],
+        "generalized_effective_rank": 3,
+        "generalized_eigenvalues": [
+          27364291.53250697,
+          590677.6114708526,
+          2545.5222315231113
+        ],
+        "information_metric": [
+          [
+            54635851.84258582,
+            -8321700.396772478,
+            -8442090.767852303
+          ],
+          [
+            -8321700.396772478,
+            5013156.313262778,
+            14013533.300895432
+          ],
+          [
+            -8442090.767852303,
+            14013533.300895432,
+            46016620.25479741
+          ]
+        ],
+        "jacobian_condition_number": 23.794918414615147,
+        "jacobian_rank": 3,
+        "jacobian_singular_values": [
+          7969.828689169186,
+          6483.461686058838,
+          334.9382649815691
+        ],
+        "local_covariance": [
+          [
+            3.366408993189551e-08,
+            2.596556833450518e-07,
+            -7.289753667101869e-08
+          ],
+          [
+            2.596556833450518e-07,
+            2.3969415275124793e-06,
+            -6.823096284572161e-07
+          ],
+          [
+            -7.289753667101877e-08,
+            -6.823096284572167e-07,
+            2.0079827843856613e-07
+          ]
+        ],
+        "optimizer_success": true,
+        "orthogonal_residual_fraction": 0.9999999999998535,
+        "physical_endpoint_bias": 0.009935363656182203,
+        "physical_uncertainty_rms": 0.010768694621169009,
+        "relative_orthogonal_residual": 0.004277797294123461,
+        "relative_residual": 0.004277797294124088,
+        "reliable": true,
+        "replicate_seed": null,
+        "residual_norm": 2.0996322826180176,
+        "tangent_orthogonal_residual_norm": 2.09963228261771,
+        "tangent_parallel_residual_norm": 1.136266791694853e-06
+      },
+      {
+        "artifact_strength": 0.001,
+        "downstream_changes": {},
+        "endpoint": [
+          0.024362907743927208,
+          0.011094448065786746,
+          0.022936122504020565
+        ],
+        "endpoint_bias": 0.0031184040674184675,
+        "failure_reasons": [],
+        "generalized_effective_rank": 3,
+        "generalized_eigenvalues": [
+          27396891.910668325,
+          587225.4309425526,
+          2294.133026782746
+        ],
+        "information_metric": [
+          [
+            54707981.93206576,
+            -8327485.874102742,
+            -8404952.996194264
+          ],
+          [
+            -8327485.874102742,
+            4988438.136241655,
+            13925575.011316491
+          ],
+          [
+            -8404952.996194264,
+            13925575.011316491,
+            45733663.41681543
+          ]
+        ],
+        "jacobian_condition_number": 23.80103213600109,
+        "jacobian_rank": 3,
+        "jacobian_singular_values": [
+          7963.194948144822,
+          6473.458910581455,
+          334.5735135620363
+        ],
+        "local_covariance": [
+          [
+            1.3421785936890133e-07,
+            1.0347511961857618e-06,
+            -2.904077567598825e-07
+          ],
+          [
+            1.034751196185762e-06,
+            9.536848073161556e-06,
+            -2.7137353270066423e-06
+          ],
+          [
+            -2.9040775675988245e-07,
+            -2.7137353270066415e-06,
+            7.984542322828811e-07
+          ]
+        ],
+        "optimizer_success": true,
+        "orthogonal_residual_fraction": 0.9999999999999917,
+        "physical_endpoint_bias": 0.01973955877535321,
+        "physical_uncertainty_rms": 0.022596917671577253,
+        "relative_orthogonal_residual": 0.008561133745808726,
+        "relative_residual": 0.008561133745808797,
+        "reliable": true,
+        "replicate_seed": null,
+        "residual_norm": 4.183495789104371,
+        "tangent_orthogonal_residual_norm": 4.183495789104336,
+        "tangent_parallel_residual_norm": 5.392080497439142e-07
+      },
+      {
+        "artifact_strength": 0.002,
+        "downstream_changes": {},
+        "endpoint": [
+          0.023737499308928846,
+          0.008270157118183106,
+          0.02385447241699072
+        ],
+        "endpoint_bias": 0.006153379184695372,
+        "failure_reasons": [
+          "relative_orthogonal_residual"
+        ],
+        "generalized_effective_rank": 3,
+        "generalized_eigenvalues": [
+          27457577.084096394,
+          580223.1107663285,
+          1769.8958814852708
+        ],
+        "information_metric": [
+          [
+            54842850.30055239,
+            -8340366.006068203,
+            -8339844.540249858
+          ],
+          [
+            -8340366.006068203,
+            4937975.950092183,
+            13745365.151149297
+          ],
+          [
+            -8339844.540249858,
+            13745365.151149297,
+            45148259.23228794
+          ]
+        ],
+        "jacobian_condition_number": 23.81447735126872,
+        "jacobian_rank": 3,
+        "jacobian_singular_values": [
+          7950.289597228874,
+          6450.622438940258,
+          333.8427075245185
+        ],
+        "local_covariance": [
+          [
+            5.333473782611963e-07,
+            4.107918853394149e-06,
+            -1.1521332453355118e-06
+          ],
+          [
+            4.107918853394155e-06,
+            3.7743500381882814e-05,
+            -1.0732169931897035e-05
+          ],
+          [
+            -1.152133245335514e-06,
+            -1.0732169931897042e-05,
+            3.1564082572608156e-06
+          ]
+        ],
+        "optimizer_success": true,
+        "orthogonal_residual_fraction": 1.0,
+        "physical_endpoint_bias": 0.03896376452936032,
+        "physical_uncertainty_rms": 0.051045272344511276,
+        "relative_orthogonal_residual": 0.017143674430134394,
+        "relative_residual": 0.017143674430134394,
+        "reliable": false,
+        "replicate_seed": null,
+        "residual_norm": 8.304236105194176,
+        "tangent_orthogonal_residual_norm": 8.304236105194176,
+        "tangent_parallel_residual_norm": 5.208857408465943e-09
+      },
+      {
+        "artifact_strength": 0.005,
+        "downstream_changes": {},
+        "endpoint": [
+          0.0219312604069687,
+          0.0002654136005308351,
+          0.026520574189680023
+        ],
+        "endpoint_bias": 0.014781461945921401,
+        "failure_reasons": [
+          "relative_orthogonal_residual"
+        ],
+        "generalized_effective_rank": 3,
+        "generalized_eigenvalues": [
+          27593292.991869457,
+          557958.4595313054,
+          62.00096926454904
+        ],
+        "information_metric": [
+          [
+            55151927.322022036,
+            -8393521.409707915,
+            -8239903.43608491
+          ],
+          [
+            -8393521.409707915,
+            4777069.583976424,
+            13163812.694704343
+          ],
+          [
+            -8239903.43608491,
+            13163812.694704343,
+            43202447.243036106
+          ]
+        ],
+        "jacobian_condition_number": 23.868340092950138,
+        "jacobian_rank": 3,
+        "jacobian_singular_values": [
+          7914.296905830163,
+          6354.951017161424,
+          331.58136992390877
+        ],
+        "local_covariance": [
+          [
+            3.2676470508697585e-06,
+            2.509370339957047e-05,
+            -7.022836310619956e-06
+          ],
+          [
+            2.5093703399570498e-05,
+            0.00022855194080269935,
+            -6.485385494737938e-05
+          ],
+          [
+            -7.0228363106199685e-06,
+            -6.485385494737942e-05,
+            1.90571726262561e-05
+          ]
+        ],
+        "optimizer_success": true,
+        "orthogonal_residual_fraction": 1.0,
+        "physical_endpoint_bias": 0.0937281769158889,
+        "physical_uncertainty_rms": 0.6655421356890491,
+        "relative_orthogonal_residual": 0.043002657095075426,
+        "relative_residual": 0.043002657095075426,
+        "reliable": false,
+        "replicate_seed": null,
+        "residual_norm": 20.295315584158605,
+        "tangent_orthogonal_residual_norm": 20.295315584158605,
+        "tangent_parallel_residual_norm": 1.8328675946643803e-07
+      },
+      {
+        "artifact_strength": 0.01,
+        "downstream_changes": {},
+        "endpoint": [
+          0.020457426328323775,
+          0.0001,
+          0.027539359268735457
+        ],
+        "endpoint_bias": 0.01563743830269944,
+        "failure_reasons": [
+          "relative_orthogonal_residual"
+        ],
+        "generalized_effective_rank": 3,
+        "generalized_eigenvalues": [
+          27658650.087386787,
+          519680.4674419563,
+          22.85094797926184
+        ],
+        "information_metric": [
+          [
+            55276657.79311341,
+            -8639422.615857434,
+            -8887955.952351414
+          ],
+          [
+            -8639422.615857434,
+            4475394.763765924,
+            12041475.890009468
+          ],
+          [
+            -8887955.952351414,
+            12041475.890009468,
+            39154986.39011911
+          ]
+        ],
+        "jacobian_condition_number": 24.05764871631191,
+        "jacobian_rank": 3,
+        "jacobian_singular_values": [
+          7883.632764157374,
+          6053.758146523898,
+          327.6975591888164
+        ],
+        "local_covariance": [
+          [
+            1.2565812327821446e-05,
+            9.61036292201189e-05,
+            -2.6702733013466863e-05
+          ],
+          [
+            9.610362922011895e-05,
+            0.0008666322622183508,
+            -0.0002447036137919585
+          ],
+          [
+            -2.6702733013466917e-05,
+            -0.00024470361379195886,
+            7.17892959495601e-05
+          ]
+        ],
+        "optimizer_success": true,
+        "orthogonal_residual_fraction": 0.9944430791778726,
+        "physical_endpoint_bias": 0.09953155579354749,
+        "physical_uncertainty_rms": 2.1091578114315386,
+        "relative_orthogonal_residual": 0.08630780040775789,
+        "relative_residual": 0.08679008604405031,
+        "reliable": false,
+        "replicate_seed": null,
+        "residual_norm": 39.266044917680226,
+        "tangent_orthogonal_residual_norm": 39.047846615074576,
+        "tangent_parallel_residual_norm": 4.133758362905306
+      }
+    ],
+    "replicate_seeds": [
+      null
+    ],
+    "thresholds": {
+      "maximum_euclidean_endpoint_bias": 0.02,
+      "maximum_jacobian_condition_number": 100000.0,
+      "maximum_orthogonal_residual_fraction": 1.0,
+      "maximum_physical_endpoint_bias": 0.5,
+      "maximum_relative_orthogonal_residual": 0.01,
+      "maximum_relative_residual": 0.1,
+      "require_full_rank": true
+    },
+    "truth_endpoint": [
+      0.025,
+      0.014,
+      0.022
+    ],
+    "uncertainty_window": [
+      0.0,
+      0.001
+    ]
+  },
+  "frequency_grid": [
+    0.86,
+    1.09,
+    1.32
+  ],
+  "routes": [
+    {
+      "artifact_strength": 0.0,
+      "endpoint": [
+        0.02499999991083327,
+        0.013999999356321052,
+        0.02200000009708139
+      ],
+      "geodesic_pathway": {
+        "endpoint_subspace_angles": [
+          0.0,
+          0.177468683825915,
+          0.31076797094085223,
+          0.418298236398414
+        ],
+        "maximum_cumulative_gram_error": 2.584437925679245e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.003027014440228,
+        "maximum_principal_angle": 0.07770969606688866,
+        "maximum_unitarity_error": 2.3946525312353837e-15,
+        "off_diagonal_mixing_fraction": 2.253234480334068e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.9999977467655193,
+            7.438529782100339e-07,
+            1.5093803793644041e-06,
+            1.1227596206489126e-12
+          ],
+          [
+            7.438529782102894e-07,
+            0.9999977467655218,
+            1.1227596204301225e-12,
+            1.5093803793642879e-06
+          ],
+          [
+            1.5093803793647643e-06,
+            1.1227596214424894e-12,
+            0.99999774676552,
+            7.438529782102911e-07
+          ],
+          [
+            1.1227596211451117e-12,
+            1.5093803793637322e-06,
+            7.438529782099904e-07,
+            0.9999977467655193
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.0009401426714188185
+        ],
+        "successive_transport_errors": [
+          0.0009401426714188438
+        ]
+      },
+      "pathway_route_comparison": {
+        "endpoint_aligned_frame_frobenius_difference": 0.0023972509902738075,
+        "endpoint_spectral_difference": 0.0,
+        "holonomy_frobenius_distance_from_identity": 0.002397250990273849,
+        "holonomy_unitarity_error": 3.199824387060922e-15
+      },
+      "physical_route": {
+        "endpoint_error": 0.0,
+        "energy": 0.03445471068137629,
+        "function_evaluations": 84,
+        "iterations": 9,
+        "max_coordinate_displacement": {
+          "J_12": 6.71210746011619e-09,
+          "gamma_phi": 0.0015078815807942,
+          "k_12": 0.0008518157115485012
+        },
+        "maximum_metric_condition": 250.00000000000006,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "minimum_metric_determinant": 6658.568247379483,
+        "relative_energy_reduction": 0.033554862496083936,
+        "straight_energy": 0.035650974219151345,
+        "success": true
+      },
+      "straight_pathway": {
+        "endpoint_subspace_angles": [
+          0.0,
+          0.177468683825915,
+          0.31076797094085223,
+          0.418298236398414
+        ],
+        "maximum_cumulative_gram_error": 3.9875757376291724e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.0028596854995337,
+        "maximum_principal_angle": 0.07553657728469804,
+        "maximum_unitarity_error": 1.9632390609006556e-15,
+        "off_diagonal_mixing_fraction": 2.216531648495834e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.9999977834683492,
+            7.227742012027255e-07,
+            1.493756367636325e-06,
+            1.079650959884954e-12
+          ],
+          [
+            7.227742012027726e-07,
+            0.999997783468351,
+            1.079650958712217e-12,
+            1.4937563676454779e-06
+          ],
+          [
+            1.4937563676361501e-06,
+            1.0796509584040796e-12,
+            0.9999977834683503,
+            7.227742012046167e-07
+          ],
+          [
+            1.0796509570605598e-12,
+            1.4937563676465256e-06,
+            7.227742012048983e-07,
+            0.999997783468351
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.0009551628623410269
+        ],
+        "successive_transport_errors": [
+          0.0009551628623410611
+        ]
+      }
+    },
+    {
+      "artifact_strength": 0.0005,
+      "endpoint": [
+        0.02467998984071059,
+        0.012536932583365176,
+        0.0224703829357443
+      ],
+      "geodesic_pathway": {
+        "endpoint_subspace_angles": [
+          1.4901161193847656e-08,
+          0.1779859689728598,
+          0.31183934843679945,
+          0.41954185120171594
+        ],
+        "maximum_cumulative_gram_error": 4.4710568468848525e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.0030429313136808,
+        "maximum_principal_angle": 0.07791322229761405,
+        "maximum_unitarity_error": 2.563173577474133e-15,
+        "off_diagonal_mixing_fraction": 2.2742986112982968e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.9999977257013893,
+            7.499128611832834e-07,
+            1.5243846069563587e-06,
+            1.1431582237034157e-12
+          ],
+          [
+            7.499128611832095e-07,
+            0.9999977257013876,
+            1.143158224088216e-12,
+            1.5243846069555116e-06
+          ],
+          [
+            1.5243846069562987e-06,
+            1.143158223412665e-12,
+            0.9999977257013871,
+            7.499128611833406e-07
+          ],
+          [
+            1.1431582230696356e-12,
+            1.5243846069589288e-06,
+            7.499128611833548e-07,
+            0.9999977257013882
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.000943284190860625
+        ],
+        "successive_transport_errors": [
+          0.0009432841908606563
+        ]
+      },
+      "pathway_route_comparison": {
+        "endpoint_aligned_frame_frobenius_difference": 0.0024251978412090603,
+        "endpoint_spectral_difference": 0.0,
+        "holonomy_frobenius_distance_from_identity": 0.002425197841209135,
+        "holonomy_unitarity_error": 4.5799046372457774e-15
+      },
+      "physical_route": {
+        "endpoint_error": 0.0,
+        "energy": 0.03476352810120671,
+        "function_evaluations": 91,
+        "iterations": 10,
+        "max_coordinate_displacement": {
+          "J_12": 6.715980341298611e-09,
+          "gamma_phi": 0.0015616399611835998,
+          "k_12": 0.0006952236638948801
+        },
+        "maximum_metric_condition": 250.00000000000006,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "minimum_metric_determinant": 7279.973354695383,
+        "relative_energy_reduction": 0.03379980376995155,
+        "straight_energy": 0.035979632623599316,
+        "success": true
+      },
+      "straight_pathway": {
+        "endpoint_subspace_angles": [
+          1.4901161193847656e-08,
+          0.1779859689728598,
+          0.31183934843679945,
+          0.41954185120171594
+        ],
+        "maximum_cumulative_gram_error": 5.198544321531643e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.002873125396526,
+        "maximum_principal_angle": 0.07571344898681924,
+        "maximum_unitarity_error": 1.9465730924138404e-15,
+        "off_diagonal_mixing_fraction": 2.236739529932026e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.9999977632604671,
+            7.283563857874829e-07,
+            1.508382045497174e-06,
+            1.098642152155297e-12
+          ],
+          [
+            7.283563857875532e-07,
+            0.9999977632604715,
+            1.0986421525165303e-12,
+            1.5083820455060302e-06
+          ],
+          [
+            1.5083820454970112e-06,
+            1.098642152134211e-12,
+            0.999997763260474,
+            7.283563857894289e-07
+          ],
+          [
+            1.0986421523715414e-12,
+            1.5083820455052285e-06,
+            7.283563857895903e-07,
+            0.9999977632604691
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.0009589045529517995
+        ],
+        "successive_transport_errors": [
+          0.0009589045529517452
+        ]
+      }
+    },
+    {
+      "artifact_strength": 0.001,
+      "endpoint": [
+        0.024362907743927208,
+        0.011094448065786746,
+        0.022936122504020565
+      ],
+      "geodesic_pathway": {
+        "endpoint_subspace_angles": [
+          1.4901161193847656e-08,
+          0.17851455930288754,
+          0.3129089945771597,
+          0.4207885487259429
+        ],
+        "maximum_cumulative_gram_error": 3.2439092670379386e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.0030599899805104,
+        "maximum_principal_angle": 0.07813075389978297,
+        "maximum_unitarity_error": 2.8595873803164548e-15,
+        "off_diagonal_mixing_fraction": 2.29526795491076e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.999997704732044,
+            7.559764523865928e-07,
+            1.5392903388542094e-06,
+            1.163669920466753e-12
+          ],
+          [
+            7.559764523864327e-07,
+            0.9999977047320455,
+            1.1636699169217259e-12,
+            1.5392903388548023e-06
+          ],
+          [
+            1.539290338853902e-06,
+            1.1636699204126898e-12,
+            0.9999977047320462,
+            7.559764523867715e-07
+          ],
+          [
+            1.1636699221317278e-12,
+            1.5392903388539823e-06,
+            7.559764523866697e-07,
+            0.9999977047320455
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.0009464998265160546
+        ],
+        "successive_transport_errors": [
+          0.000946499826516054
+        ]
+      },
+      "pathway_route_comparison": {
+        "endpoint_aligned_frame_frobenius_difference": 0.0024565256780548473,
+        "endpoint_spectral_difference": 0.0,
+        "holonomy_frobenius_distance_from_identity": 0.0024565256780548486,
+        "holonomy_unitarity_error": 5.7138533642729595e-15
+      },
+      "physical_route": {
+        "endpoint_error": 0.0,
+        "energy": 0.03511789531610221,
+        "function_evaluations": 84,
+        "iterations": 9,
+        "max_coordinate_displacement": {
+          "J_12": 6.774304027457045e-09,
+          "gamma_phi": 0.0016151258083290099,
+          "k_12": 0.0005473462522418877
+        },
+        "maximum_metric_condition": 250.00000000000006,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "minimum_metric_determinant": 8059.458304268022,
+        "relative_energy_reduction": 0.034143647935103695,
+        "straight_energy": 0.03635933567245683,
+        "success": true
+      },
+      "straight_pathway": {
+        "endpoint_subspace_angles": [
+          1.4901161193847656e-08,
+          0.17851455930288754,
+          0.3129089945771597,
+          0.4207885487259429
+        ],
+        "maximum_cumulative_gram_error": 4.3491016532172604e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.0028869641071818,
+        "maximum_principal_angle": 0.07589513431857213,
+        "maximum_unitarity_error": 2.1734283719622448e-15,
+        "off_diagonal_mixing_fraction": 2.2568092436989673e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.9999977431907549,
+            7.339152068758218e-07,
+            1.5228929191418927e-06,
+            1.117676793019509e-12
+          ],
+          [
+            7.339152068759291e-07,
+            0.9999977431907553,
+            1.1176767915194628e-12,
+            1.522892919149668e-06
+          ],
+          [
+            1.5228929191420528e-06,
+            1.1176767942937066e-12,
+            0.9999977431907531,
+            7.339152068777877e-07
+          ],
+          [
+            1.117676793908339e-12,
+            1.5228929191479382e-06,
+            7.339152068775898e-07,
+            0.9999977431907553
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.0009627121646068017
+        ],
+        "successive_transport_errors": [
+          0.0009627121646067719
+        ]
+      }
+    },
+    {
+      "artifact_strength": 0.002,
+      "endpoint": [
+        0.023737499308928846,
+        0.008270157118183106,
+        0.02385447241699072
+      ],
+      "geodesic_pathway": {
+        "endpoint_subspace_angles": [
+          2.580956827951785e-08,
+          0.17960869039747554,
+          0.31504273433688823,
+          0.42329120155410155
+        ],
+        "maximum_cumulative_gram_error": 2.06705638641439e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.0030985516260125,
+        "maximum_principal_angle": 0.0786202502199037,
+        "maximum_unitarity_error": 1.7677029195681692e-15,
+        "off_diagonal_mixing_fraction": 2.3369120676232992e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.9999976630879307,
+            7.681071788007696e-07,
+            1.5688036838105945e-06,
+            1.205012187478069e-12
+          ],
+          [
+            7.681071788007525e-07,
+            0.9999976630879325,
+            1.2050121874511267e-12,
+            1.568803683809632e-06
+          ],
+          [
+            1.568803683810651e-06,
+            1.2050121873248695e-12,
+            0.9999976630879331,
+            7.681071788008379e-07
+          ],
+          [
+            1.2050121876519017e-12,
+            1.568803683810675e-06,
+            7.681071788005305e-07,
+            0.9999976630879316
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.0009531727823319966
+        ],
+        "successive_transport_errors": [
+          0.0009531727823319957
+        ]
+      },
+      "pathway_route_comparison": {
+        "endpoint_aligned_frame_frobenius_difference": 0.0025326158634015497,
+        "endpoint_spectral_difference": 0.0,
+        "holonomy_frobenius_distance_from_identity": 0.0025326158634014903,
+        "holonomy_unitarity_error": 3.852360592586453e-15
+      },
+      "physical_route": {
+        "endpoint_error": 0.0,
+        "energy": 0.035992105653110486,
+        "function_evaluations": 168,
+        "iterations": 9,
+        "max_coordinate_displacement": {
+          "J_12": 6.870588778462583e-09,
+          "gamma_phi": 0.0017212880719431455,
+          "k_12": 0.00028439013201702126
+        },
+        "maximum_metric_condition": 250.00000000000006,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "minimum_metric_determinant": 10395.56211197683,
+        "relative_energy_reduction": 0.035127041532777244,
+        "straight_energy": 0.03730242964865219,
+        "success": true
+      },
+      "straight_pathway": {
+        "endpoint_subspace_angles": [
+          2.580956827951785e-08,
+          0.17960869039747554,
+          0.31504273433688823,
+          0.42329120155410155
+        ],
+        "maximum_cumulative_gram_error": 3.636997577123837e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.002915887462542,
+        "maximum_principal_angle": 0.07627345166863041,
+        "maximum_unitarity_error": 2.3334825754980364e-15,
+        "off_diagonal_mixing_fraction": 2.2964852863539265e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.9999977035147143,
+            7.449280713235746e-07,
+            1.5515560592261653e-06,
+            1.155800316523929e-12
+          ],
+          [
+            7.449280713236831e-07,
+            0.9999977035147125,
+            1.1558003186052119e-12,
+            1.5515560592313826e-06
+          ],
+          [
+            1.5515560592263313e-06,
+            1.15580031800393e-12,
+            0.9999977035147118,
+            7.449280713251655e-07
+          ],
+          [
+            1.1558003160330836e-12,
+            1.5515560592331637e-06,
+            7.449280713249655e-07,
+            0.9999977035147136
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.0009705461357029125
+        ],
+        "successive_transport_errors": [
+          0.0009705461357028547
+        ]
+      }
+    },
+    {
+      "artifact_strength": 0.005,
+      "endpoint": [
+        0.0219312604069687,
+        0.0002654136005308351,
+        0.026520574189680023
+      ],
+      "geodesic_pathway": {
+        "endpoint_subspace_angles": [
+          3.332000937312528e-08,
+          0.18325843832934624,
+          0.32139363805692545,
+          0.43088039910539666
+        ],
+        "maximum_cumulative_gram_error": 4.7940837327739735e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.0033345922132597,
+        "maximum_principal_angle": 0.08155185160235137,
+        "maximum_unitarity_error": 1.6586171478008304e-15,
+        "off_diagonal_mixing_fraction": 2.461441643376255e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.9999975385583565,
+            8.059033923482379e-07,
+            1.655536916822628e-06,
+            1.334206100168251e-12
+          ],
+          [
+            8.05903392347935e-07,
+            0.9999975385583574,
+            1.3342061026882918e-12,
+            1.6555369168233054e-06
+          ],
+          [
+            1.6555369168222205e-06,
+            1.33420610545357e-12,
+            0.9999975385583554,
+            8.059033923480431e-07
+          ],
+          [
+            1.3342061018066953e-12,
+            1.6555369168197686e-06,
+            8.059033923484729e-07,
+            0.9999975385583583
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.0009765188322993679
+        ],
+        "successive_transport_errors": [
+          0.00097651883229935
+        ]
+      },
+      "pathway_route_comparison": {
+        "endpoint_aligned_frame_frobenius_difference": 0.0031262878678157517,
+        "endpoint_spectral_difference": 0.0,
+        "holonomy_frobenius_distance_from_identity": 0.0031262878678157387,
+        "holonomy_unitarity_error": 5.246804418851421e-15
+      },
+      "physical_route": {
+        "endpoint_error": 0.0,
+        "energy": 0.042441282289316165,
+        "function_evaluations": 91,
+        "iterations": 10,
+        "max_coordinate_displacement": {
+          "J_12": 7.7414480104121e-09,
+          "gamma_phi": 0.002034065920153587,
+          "k_12": 0.0002868554554024622
+        },
+        "maximum_metric_condition": 965.8693690006384,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "minimum_metric_determinant": 120118.97175247982,
+        "relative_energy_reduction": 0.03864777624222049,
+        "straight_energy": 0.04414748438758445,
+        "success": true
+      },
+      "straight_pathway": {
+        "endpoint_subspace_angles": [
+          3.332000937312528e-08,
+          0.18325843832934624,
+          0.32139363805692545,
+          0.43088039910539666
+        ],
+        "maximum_cumulative_gram_error": 2.876079304193467e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.003013870951338,
+        "maximum_principal_angle": 0.07754122584613268,
+        "maximum_unitarity_error": 2.273650257757309e-15,
+        "off_diagonal_mixing_fraction": 2.410791066292651e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.9999975892089331,
+            7.764186272546282e-07,
+            1.6343711700770016e-06,
+            1.2689592795080286e-12
+          ],
+          [
+            7.764186272544137e-07,
+            0.9999975892089338,
+            1.268959277860253e-12,
+            1.6343711700808177e-06
+          ],
+          [
+            1.6343711700767588e-06,
+            1.26895927970016e-12,
+            0.9999975892089338,
+            7.764186272553038e-07
+          ],
+          [
+            1.2689592803394501e-12,
+            1.6343711700788223e-06,
+            7.764186272557393e-07,
+            0.999997589208934
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.0009962686089229889
+        ],
+        "successive_transport_errors": [
+          0.00099626860892298
+        ]
+      }
+    },
+    {
+      "artifact_strength": 0.01,
+      "endpoint": [
+        0.020457426328323775,
+        0.0001,
+        0.027539359268735457
+      ],
+      "geodesic_pathway": {
+        "endpoint_subspace_angles": [
+          0.0,
+          0.1916696830686757,
+          0.33261742529658156,
+          0.44345512275414706
+        ],
+        "maximum_cumulative_gram_error": 5.2219550182436125e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.0035307552734887,
+        "maximum_principal_angle": 0.08390945059954966,
+        "maximum_unitarity_error": 2.5509179401653855e-15,
+        "off_diagonal_mixing_fraction": 2.5548699292154292e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.9999974451300706,
+            8.344969229718375e-07,
+            1.7203715705946877e-06,
+            1.4356484500333824e-12
+          ],
+          [
+            8.344969229717197e-07,
+            0.9999974451300708,
+            1.4356484505299713e-12,
+            1.7203715705938828e-06
+          ],
+          [
+            1.7203715705947224e-06,
+            1.4356484505400812e-12,
+            0.9999974451300722,
+            8.344969229718617e-07
+          ],
+          [
+            1.4356484501472171e-12,
+            1.7203715705972388e-06,
+            8.344969229719574e-07,
+            0.9999974451300664
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.0010619843832160756
+        ],
+        "successive_transport_errors": [
+          0.0010619843832161326
+        ]
+      },
+      "pathway_route_comparison": {
+        "endpoint_aligned_frame_frobenius_difference": 0.0034570298779494062,
+        "endpoint_spectral_difference": 0.0,
+        "holonomy_frobenius_distance_from_identity": 0.0034570298779493793,
+        "holonomy_unitarity_error": 7.67163123132127e-15
+      },
+      "physical_route": {
+        "endpoint_error": 0.0,
+        "energy": 0.04541453191115637,
+        "function_evaluations": 91,
+        "iterations": 10,
+        "max_coordinate_displacement": {
+          "J_12": 8.029547714227814e-09,
+          "gamma_phi": 0.002155108017147085,
+          "k_12": 0.00033758467525142437
+        },
+        "maximum_metric_condition": 2563.548668689052,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "minimum_metric_determinant": 124733.01445490445,
+        "relative_energy_reduction": 0.03946042751037012,
+        "straight_energy": 0.04728022999973452,
+        "success": true
+      },
+      "straight_pathway": {
+        "endpoint_subspace_angles": [
+          0.0,
+          0.1916696830686757,
+          0.33261742529658156,
+          0.44345512275414706
+        ],
+        "maximum_cumulative_gram_error": 4.632091396400884e-15,
+        "maximum_frame_condition": 2.6077611534799496,
+        "maximum_overlap_condition": 1.003251170147022,
+        "maximum_principal_angle": 0.08052808321043804,
+        "maximum_unitarity_error": 1.820502502382703e-15,
+        "off_diagonal_mixing_fraction": 2.4974202378173004e-06,
+        "pathway_mixing_matrix": [
+          [
+            0.9999975025797619,
+            8.012198332882933e-07,
+            1.6961990454966385e-06,
+            1.3590317107435869e-12
+          ],
+          [
+            8.012198332880689e-07,
+            0.9999975025797642,
+            1.3590317068581642e-12,
+            1.6961990454980687e-06
+          ],
+          [
+            1.6961990454965155e-06,
+            1.359031709091471e-12,
+            0.9999975025797646,
+            8.01219833288368e-07
+          ],
+          [
+            1.3590317107085092e-12,
+            1.696199045497997e-06,
+            8.012198332884239e-07,
+            0.9999975025797617
+          ]
+        ],
+        "refinement_factors": [
+          1,
+          2
+        ],
+        "successive_ambient_frame_errors": [
+          0.001087357682051403
+        ],
+        "successive_transport_errors": [
+          0.0010873576820514615
+        ]
+      }
+    }
+  ],
+  "schema_version": 1,
+  "t2": 0.8
+}

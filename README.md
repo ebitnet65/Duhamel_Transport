@@ -185,6 +185,26 @@ straight-line construction used in the earlier SAKE workflow.
 The checked-in numerical record, reproduction commands, and limitations are
 in `docs/benchmarks/covariant_endpoint_transport/README.md`.
 
+### Fourier-window robustness and publication figures
+
+The first controlled observation-model mismatch test applies symmetric
+exponential apodization in the Fourier acquisition layer while fitting with the
+ideal Liouvillian spectrum. It shows that \(k_{12}\) is especially sensitive to
+the Fourier window, with systematic accompanying shifts in \(J_{12}\) and
+\(\gamma_\phi\). The ideal model can remain full rank and return a converged
+endpoint after a tangent-orthogonal residual has already signaled model
+inadequacy.
+
+The scientific interpretation, exact production parameters, and limitations
+are documented in `docs/fourier_window_publication_test.md`. Regenerate all
+final figures and compact audit data with:
+
+```bash
+python generate_fourier_window_publication_artifacts.py \
+  --input-dir fourier_artifact_robustness_benchmark \
+  --output-dir publication_artifacts/fourier_window
+```
+
 Endpoint robustness will be characterized using the spectral residual
 Jacobian, multi-start recovery, synthetic-noise ensembles, bootstrap/profile
 analyses, and singular values. The spectral identifiability matrix

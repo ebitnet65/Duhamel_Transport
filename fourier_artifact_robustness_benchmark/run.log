@@ -1,0 +1,7 @@
+{
+  "output_dir": "/Users/bittner_1/Documents/ChatGPT/SAKE-DT Development/Duhamel_Transport/fourier_artifact_robustness_benchmark",
+  "uncertainty_window": [
+    0.0,
+    0.001
+  ]
+}

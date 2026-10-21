@@ -144,10 +144,48 @@ The demo writes:
 - `geometry_summary.json`
 - `optical_bloch_geometry.npz`
 
-## Next Upgrade
+## Parallel Transport Prototype
 
-The next code step should be a geodesic solver using \(G_{\mu\nu}(\lambda)\).
-For an endpoint \(q\), the path \(\gamma_{pq}\) should minimize
+`Liouville_covariant_transport.py` implements model-independent
+Levi-Civita parallel transport of tangent vectors and complete frames along a
+supplied piecewise-linear control path. Each frame column satisfies
+
+\[
+\frac{dV^\alpha}{ds}
+=-\Gamma^\alpha_{\mu\nu}(\lambda(s))
+  \dot\lambda^\mu V^\nu.
+\]
+
+The optical Bloch tests check metric inner-product preservation, recovery on
+the reversed path, and agreement between symbolic and Liouvillian-autodiff
+Christoffel backends. Run them with:
+
+```bash
+pytest -q test_liouville_covariant_transport.py
+```
+
+This prototype transports control-manifold tangent frames. Mapping those
+frames into model-specific Liouville pathway bases remains a separate layer.
+
+### New-model robustness check
+
+`dimer_covariant_geometry.py` applies the same transport layer to the existing
+four-level exciton-dimer Liouvillian without modifying the dimer model. The
+test manifold uses controls
+\((\omega_2-\omega_1,J_{12},k_{12})\), steady-state density coordinates, and
+the real and imaginary Liouvillian entries as generator coordinates. The
+detailed-balance transfer rates give a nonconstant metric and nonzero
+connection, avoiding the trivial flat geometry that would result from the
+unpumped dimer stationary state with \(h=\lambda\).
+
+```bash
+pytest -q test_dimer_covariant_transport.py
+```
+
+## Discrete Geodesics and Path Comparison
+
+`Liouville_geodesics.py` minimizes the midpoint-discretized energy at fixed
+endpoints:
 
 \[
 E[\gamma]
@@ -159,5 +197,41 @@ G_{\mu\nu}(\lambda)
 \,ds.
 \]
 
-That solver can then feed local pathway-frame transport along the physical
-geodesic rather than along a straight line in parameter space.
+The dimer comparison uses eight vertices and checks the optimized path against
+coordinate-space straight interpolation. In the test regime the geodesic
+reduces energy by about \(1.65\times10^{-3}\), its largest coordinate-space
+departure from the straight path is about \(2.08\times10^{-3}\), and the two
+paths produce endpoint frames separated by about \(1.78\times10^{-3}\) in
+Frobenius norm. Both transports preserve metric inner products.
+
+```bash
+pytest -q test_liouville_geodesics.py test_dimer_geodesic_transport.py
+```
+
+A later model adapter can map the transported tangent frame into local
+Liouville pathway frames.
+
+### Three-control collapse-operator benchmark
+
+The next dimer benchmark uses
+\(\lambda=(J,k,\gamma_\phi)\) at fixed detuning and temperature. Transfer
+collapse operators obey detailed balance,
+
+\[
+C_{1\to2}=\sqrt{k e^{-\beta\Delta/2}}\,|01\rangle\langle10|,
+\qquad
+C_{2\to1}=\sqrt{k e^{+\beta\Delta/2}}\,|10\rangle\langle01|,
+\]
+
+and collective dephasing uses
+\(C_\phi=\sqrt{\gamma_\phi}(\sigma_z^{(1)}+\sigma_z^{(2)})\).
+The physical generator embedding contains these square-root collapse operators
+directly. The optimized nine-vertex path reaches the specified truth endpoint
+and lowers energy by about 5.59 percent. Both rate coordinates depart visibly
+from straight interpolation; \(J\) remains linear. This embedding is
+intrinsically flat, so endpoint parallel transport is path independent even
+though the geodesic is curved in the original rate coordinates.
+
+```bash
+pytest -q test_dimer_three_control_geodesic.py
+```

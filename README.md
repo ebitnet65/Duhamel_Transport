@@ -5,16 +5,16 @@
 **SAKE-DT** is a Spectral Autodiff Kernel Expansion framework for Duhamel
 transport of Liouville-space nonlinear-response pathways.
 
-This branch is the SAKE/autodiff dimer release-development line. It contains
-the four-level `su(2) x su(2)` exciton-dimer model, JAX/autodiff Liouvillian
-derivatives, and Duhamel transport expansions through third order.
+This checkout is the isolated `codex/bloch-geometry-autodiff` development line
+for covariant SAKE. The publication branches `codex/sake-autodiff-dimer` and
+`codex/jcp3-finite-difference` are preserved unchanged.
 
 ## Covariant Geometry Test Branch
 
-The branch `codex/bloch-geometry-autodiff` is a separate development branch for
-the covariant SAKE geometry layer.  It uses a driven two-level optical Bloch
-model with amplitude damping because this model has a closed-form stationary
-state and therefore gives a clean benchmark for autodiff geometry.
+The optical Bloch amplitude-damping model provides the analytic reference for
+the covariant geometry layer. Its closed-form stationary state makes it
+possible to validate symbolic, finite-difference, closed-form autodiff, and
+Liouvillian-autodiff calculations against one another.
 
 The validated workflow is:
 
@@ -30,20 +30,244 @@ r(\lambda),h(\lambda)
 G_{\mu\nu}(\lambda),F_{\mu\nu}(\lambda),\Gamma^\alpha_{\mu\nu}(\lambda).
 \]
 
-The branch includes:
+### Implemented geometry and transport
+
+The branch currently includes:
 
 - `optical_bloch_geometry.py`: closed-form, symbolic, finite-difference, and
   JAX/Liouvillian geometry backends.
 - `test_optical_bloch_geometry.py`: validation tests comparing the closed-form
   and Liouvillian-autodiff routes.
 - `demo_optical_bloch_geometry.py`: command-line diagnostic driver.
-- `docs/optical_bloch_geometry_test_branch.md`: model definition, equations,
-  backend summary, and next geodesic-transport step.
+- `Liouville_covariant_transport.py`: model-independent Levi-Civita transport
+  of tangent vectors and frames along a supplied path.
+- `Liouville_geodesics.py`: fixed-endpoint discrete path-energy minimization,
+  control bounds, and metric determinant/condition diagnostics.
+- `dimer_covariant_geometry.py`: JAX geometry adapters used to test the same
+  transport layer on the four-level exciton dimer.
+- `test_liouville_covariant_transport.py` and `test_liouville_geodesics.py`:
+  invariant, reversibility, Euclidean-reference, and refinement checks.
+- `test_dimer_covariant_transport.py`, `test_dimer_geodesic_transport.py`, and
+  `test_dimer_three_control_geodesic.py`: new-model robustness and
+  straight-versus-geodesic comparisons.
+- `docs/optical_bloch_geometry_test_branch.md`: equations, backend details,
+  transport results, and benchmark notes.
+- `docs/covariant_sake_paper_plan.md`: stand-alone manuscript positioning,
+  required contributions, validation hierarchy, figure plan, and decision
+  gates relative to the under-review JCPIV_SAKE paper.
 
-Run the focused validation:
+Parallel transport integrates
+
+\[
+\frac{dV^\alpha}{ds}
+=-\Gamma^\alpha_{\mu\nu}(\lambda(s))
+  \dot\lambda^\mu V^\nu.
+\]
+
+The implementation preserves metric Gram matrices and recovers the initial
+frame under reversed-path transport.
+
+### Dimer validation log
+
+The first curved dimer manifold used controls
+\((\omega_2-\omega_1,J_{12},k_{12})\) with stationary-density coordinates and
+real/imaginary Liouvillian generator coordinates. The optimized physical path
+had lower energy than straight interpolation and produced a distinct endpoint
+frame, while both transports preserved metric inner products.
+
+The next three-control benchmark used
+
+\[
+\lambda=(J,k,\gamma_\phi)
+\]
+
+at fixed detuning and temperature, with detailed-balance transfer operators
+
+\[
+C_{1\to2}=\sqrt{k e^{-\beta\Delta/2}}|01\rangle\langle10|,
+\qquad
+C_{2\to1}=\sqrt{k e^{+\beta\Delta/2}}|10\rangle\langle01|,
+\]
+
+and collective dephasing
+
+\[
+C_\phi=\sqrt{\gamma_\phi}
+(\sigma_z^{(1)}+\sigma_z^{(2)}).
+\]
+
+For the tested endpoints, the nine-vertex geodesic lowered path energy by
+about 5.59 percent. The rate coordinates curved away from straight
+interpolation while \(J\) remained linear. This square-root operator embedding
+is intrinsically flat, so its endpoint parallel transport is path independent
+even though the minimum-energy path is curved in rate coordinates.
+
+### Control-dimensional scaling
+
+`benchmark_covariant_scaling.py` measures geometry compilation/evaluation,
+geodesic discovery, and frame transport for 2--16 controls at fixed path
+resolution. The empirical sweep found
+
+\[
+T_{\mathrm{geodesic}}\sim n^{1.89},
+\qquad
+N_{\mathrm{objective\ calls}}\sim n^{1.04}.
+\]
+
+The finite-difference path optimizer is the first scaling bottleneck. Warm
+metric/Christoffel evaluation and frame transport remained small through 16
+controls. Detailed results are in `docs/covariant_scaling_analysis.md` and
+`covariant_scaling_benchmark/`.
+
+The next performance upgrade is a fully JAX discrete-energy objective with an
+autodiff gradient supplied directly to L-BFGS-B, followed by batched metric
+evaluation over path nodes. A later benchmark must vary control dimension,
+path resolution, and spectral-pixel count independently.
+
+### Planned endpoint-discovery workflow
+
+The experimental truth observable is an endpoint property and does not depend
+on the path:
+
+\[
+Y_{\mathrm{truth}}=\mathcal O(q_{\mathrm{true}}).
+\]
+
+Development will keep endpoint inference and route discovery separate:
+
+1. Discover the endpoint from the fixed 2D spectral observation,
+
+   \[
+   q^\star=\arg\min_q
+   \frac12\|W[\mathcal O(q)-Y_{\mathrm{truth}}]\|_2^2+R(q).
+   \]
+
+2. Validate spectral recovery and, for synthetic data, direct recovery of
+   \(q_{\mathrm{true}}\).
+3. With \(q^\star\) fixed, solve the boundary-value problem
+   \(\gamma(0)=p\), \(\gamma(1)=q^\star\) by minimizing physical path energy.
+4. Parallel-transport the local pathway frame along \(\gamma_{p q^\star}\).
+
+The initial synthetic recovery test will omit geodesic-distance regularization
+so the reference model cannot bias endpoint discovery. For a 2D spectrum with
+many pixels and relatively few controls, the planned inverse solver is
+bounded matrix-free Gauss--Newton or Levenberg--Marquardt using JAX JVP/VJP
+operations.
+
+Endpoint robustness will be characterized using the spectral residual
+Jacobian, multi-start recovery, synthetic-noise ensembles, bootstrap/profile
+analyses, and singular values. The spectral identifiability matrix
+
+\[
+I=J_{\mathcal O}^{T}W^{T}WJ_{\mathcal O}
+\]
+
+must remain conceptually separate from the physical Liouvillian metric
+\(G_{\mu\nu}\). Samples from the endpoint uncertainty distribution can then be
+mapped to a bundle of geodesics from \(p\), propagating inference uncertainty
+into route and transported-frame uncertainty.
+
+### Planned waiting-time robustness benchmark
+
+Endpoint recovery must also be tested against the population waiting time
+\(t_2\). The truth endpoint remains one fixed, discoverable model
+\(q_{\mathrm{true}}\); changing \(t_2\) changes the observation protocol, not
+the endpoint or the physical control vector:
+
+\[
+Y_{\mathrm{truth}}(t_2)=\mathcal O(q_{\mathrm{true}};t_2).
+\]
+
+The benchmark will contain three complementary tests:
+
+1. **Correctly specified independent recovery.** Generate and fit each spectrum
+   at the same \(t_2\). The recovered endpoints \(q^\star(t_2)\) should agree
+   with the common \(q_{\mathrm{true}}\) within numerical and noise uncertainty.
+2. **Waiting-time misspecification.** Generate data at
+   \(t_2^{\mathrm{truth}}\) and fit it using displaced waiting times. This
+   measures the endpoint bias
+   \(q^\star(t_2^{\mathrm{fit}})-q_{\mathrm{true}}\) caused by timing or model
+   error.
+3. **Joint multi-time recovery.** Fit one shared endpoint to a stack of spectra,
+
+   \[
+   q^\star=\arg\min_q
+   \frac12\sum_j
+   \|W_j[\mathcal O(q;t_{2,j})-Y_{\mathrm{truth}}(t_{2,j})]\|_2^2.
+   \]
+
+The report will include endpoint drift, normalized spectral residual,
+spectral-Jacobian singular values, covariance estimates, optimizer success,
+and runtime versus \(t_2\). A joint fit should improve identifiability when
+different waiting times expose complementary population-transfer and
+dephasing information. Very short and very long waiting times are expected to
+be less informative than the intermediate dynamical regime and must be
+reported rather than silently excluded.
+
+Only after the shared endpoint has been recovered will the physical geodesic
+from \(p\) to \(q^\star\) be computed. Thus the robustness test cannot make the
+truth observable path dependent or allow the route solver to bias endpoint
+discovery.
+
+### Planned model-adequacy and discrimination benchmark
+
+A third robustness axis is structural model mismatch. Endpoint inversion will
+be repeated with a nested family of candidate models rather than assuming that
+the truth generator is known. The benchmark matrix will include:
+
+1. **Under-specified candidate:** the synthetic truth contains a physical term
+   absent from the inversion model.
+2. **Correctly specified candidate:** candidate and truth use the same terms.
+3. **Over-specified candidate:** the candidate contains one or more unnecessary
+   controls whose truth values are zero or otherwise inactive.
+
+The initial spectral inversion is expected to diagnose these cases through a
+combination of residual structure and parameter identifiability. An
+under-specified model should leave reproducible, frequency- and
+waiting-time-dependent residuals. In an over-specified model, unnecessary
+controls should appear as weak spectral-Jacobian directions, broad profile or
+posterior uncertainty, and unstable individual parameter estimates even when
+the predicted spectrum is stable. An extra parameter need not numerically
+return to zero when it is correlated with retained controls, so parameter value
+alone is not a sufficient discrimination criterion.
+
+Candidate models will be compared using:
+
+- training residuals and held-out spectral residuals at waiting times not used
+  in the fit;
+- singular values and effective rank of the spectral Jacobian;
+- profile likelihoods or covariance/posterior widths for added controls;
+- noise-aware likelihood-ratio tests for nested models when regularity
+  conditions hold;
+- AIC/BIC or predictive cross-validation as secondary complexity penalties;
+- multi-start stability of the recovered endpoint and predicted spectrum.
+
+The preferred model is the smallest candidate that explains both fitted and
+held-out 2D spectra without structured residuals. Joint multi-\(t_2\) data are
+especially valuable because a spurious parameter degeneracy at one waiting
+time may be broken at another.
+
+Geometric comparisons across candidate models require care because their
+control manifolds can have different dimensions. Raw coordinate paths will not
+be compared directly. Instead, candidate endpoints and geodesics will be
+mapped into common observable, stationary-state, or Liouvillian embeddings;
+the comparison will use predicted spectra, path energies within each model,
+transported subspaces, principal angles, and uncertainty-aware endpoint
+images. This keeps model discrimination in the initial inversion while using
+covariant transport as a downstream diagnostic rather than as a source of
+truth labels.
+
+Run the focused covariant validation:
 
 ```bash
-pytest -q test_optical_bloch_geometry.py
+pytest -q \
+  test_optical_bloch_geometry.py \
+  test_liouville_covariant_transport.py \
+  test_liouville_geodesics.py \
+  test_dimer_covariant_transport.py \
+  test_dimer_geodesic_transport.py \
+  test_dimer_three_control_geodesic.py \
+  test_benchmark_covariant_scaling.py
 ```
 
 Generate a diagnostic output directory:

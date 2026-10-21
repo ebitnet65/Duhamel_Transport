@@ -990,3 +990,11 @@ MPLCONFIGDIR=/tmp/mpl-dark-state python publication_artifacts/dark_state_transpo
   --nfreq 21 --projection-nfreq 5 --waiting-times 0.2 1.0 4.0 \
   --n-quad 2 --order 3 --trap-rate 0.003
 ```
+
+Higher trap-rate cases are saved separately under
+`publication_artifacts/dark_state_transport/trap_sweep/`. Once those
+directories contain completed runs, summarize the full sweep with:
+
+```bash
+MPLCONFIGDIR=/tmp/mpl-dark-state python publication_artifacts/dark_state_transport/generate_dark_state_trap_sweep.py
+```

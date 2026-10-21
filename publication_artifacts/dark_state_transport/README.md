@@ -82,3 +82,31 @@ how a missing dark channel can be partly absorbed into fitted dimer parameters
 and leaves a structured complex residual. It does not replace the larger
 noise-aware, uncertainty-quantified structural-discrimination benchmark in
 `docs/`.
+
+## Trap-rate stress sweep
+
+The checked-in `kd=0.003` outputs are retained as the fixed reference case.
+Higher-rate runs are written to separate directories under
+`trap_sweep/kd_<rate>` so they cannot overwrite the reference. Each run uses
+the same frequency grid, waiting times, control bounds, and third-order
+transport calculation; only `kd` changes. Reproduce an individual case with:
+
+```bash
+MPLCONFIGDIR=/tmp/mpl-dark-state python publication_artifacts/dark_state_transport/generate_dark_state_transport_figures.py \
+  --output-dir publication_artifacts/dark_state_transport/trap_sweep/kd_0.01 \
+  --nfreq 21 --projection-nfreq 5 --waiting-times 0.2 1.0 4.0 \
+  --n-quad 2 --order 3 --trap-rate 0.01
+```
+
+After the case directories are populated, aggregate all completed rates with:
+
+```bash
+MPLCONFIGDIR=/tmp/mpl-dark-state python publication_artifacts/dark_state_transport/generate_dark_state_trap_sweep.py
+```
+
+The aggregator preserves the original baseline directory, writes a CSV/JSON
+table of fitted parameters and relative complex-spectrum errors, and generates
+publication figures for parameter drift, residual growth, and the strongest
+completed trap case. The sweep interpretation remains conditional on the
+specified spectral window, grid, control bounds, and noiseless least-squares
+objective; it is not an uncertainty or mechanism-identification result.

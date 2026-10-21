@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "control_order": [
+    "J_12",
+    "k_12",
+    "gamma_phi"
+  ],
+  "frequency_grid": [
+    0.86,
+    1.09,
+    1.32
+  ],
+  "spectrum_config": {
+    "eta": 0.03,
+    "mean_site_energy": 1.09,
+    "detuning": 0.18,
+    "beta": 2.5
+  },
+  "truth": {
+    "endpoint": [
+      0.025,
+      0.014,
+      0.022
+    ],
+    "t2": 0.8,
+    "noiseless_observation": [
+      -3.1287307683466707,
+      28.879429306987404,
+      36.86160421100442,
+      -70.14889100577048,
+      -188.7069328995163,
+      -125.64436345182038,
+      -38.60918095398502,
+      -158.48536411508346,
+      -75.53108803525849,
+      -48.51504376248198,
+      -155.3808533860068,
+      -48.14712362064712,
+      -38.852721816152496,
+      -164.20873666269432,
+      -152.84033661238058,
+      71.89790770450252,
+      227.6382569269446,
+      120.7244541381076
+    ],
+    "observation": [
+      -3.1287307683466707,
+      28.879429306987404,
+      36.86160421100442,
+      -70.14889100577048,
+      -188.7069328995163,
+      -125.64436345182038,
+      -38.60918095398502,
+      -158.48536411508346,
+      -75.53108803525849,
+      -48.51504376248198,
+      -155.3808533860068,
+      -48.14712362064712,
+      -38.852721816152496,
+      -164.20873666269432,
+      -152.84033661238058,
+      71.89790770450252,
+      227.6382569269446,
+      120.7244541381076
+    ],
+    "relative_noise": 0.0,
+    "seed": 0
+  },
+  "recovery_config": {
+    "bounds": [
+      [
+        -0.1,
+        0.1
+      ],
+      [
+        0.0001,
+        0.03
+      ],
+      [
+        0.0001,
+        0.04
+      ]
+    ],
+    "n_random_starts": 0,
+    "seed": 0
+  },
+  "recovery": {
+    "endpoint": [
+      0.02499999991083326,
+      0.013999999356321185,
+      0.02200000009708135
+    ],
+    "best_start": [
+      0.0,
+      0.01505,
+      0.020050000000000002
+    ],
+    "success": true,
+    "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+    "objective": 7.967321450892446e-19,
+    "relative_spectral_residual": 1.2623249819798641e-09,
+    "endpoint_absolute_error": 6.570372234783077e-10,
+    "endpoint_relative_error": 1.8187990501841684e-08,
+    "gradient_norm": 1.647230185783895e-08,
+    "iterations": 18,
+    "evaluations": 20,
+    "jacobian_singular_values": [
+      7976.583280551189,
+      6492.591591412895,
+      335.3034826605072
+    ],
+    "jacobian_condition_number": 23.789145335622514,
+    "jacobian_rank": 3,
+    "runs": [
+      {
+        "start": [
+          0.0,
+          0.01505,
+          0.020050000000000002
+        ],
+        "endpoint": [
+          0.02499999991083326,
+          0.013999999356321185,
+          0.02200000009708135
+        ],
+        "success": true,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "objective": 7.967321450892446e-19,
+        "gradient_norm": 1.647230185783895e-08,
+        "iterations": 18,
+        "evaluations": 20
+      },
+      {
+        "start": [
+          0.04,
+          0.006,
+          0.012
+        ],
+        "endpoint": [
+          0.02500000137162145,
+          0.014000014493690571,
+          0.02199999805952692
+        ],
+        "success": true,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "objective": 5.278058431910712e-16,
+        "gradient_norm": 4.621309151166179e-07,
+        "iterations": 18,
+        "evaluations": 22
+      }
+    ]
+  },
+  "runtime": {
+    "schema_version": 1,
+    "recorded_at": "2026-10-21T15:58:12.171337+00:00",
+    "host": {
+      "hostname": "NSMPHYSBittnerMacStudio",
+      "os": "Darwin",
+      "os_release": "25.6.0",
+      "architecture": "arm64",
+      "processor": "arm",
+      "logical_cpu_count": 12
+    },
+    "python": {
+      "version": "3.13.5",
+      "implementation": "CPython",
+      "executable": "/opt/anaconda3/bin/python"
+    },
+    "packages": {
+      "numpy": "2.1.3",
+      "scipy": "1.15.3",
+      "jax": {
+        "available": true,
+        "version": "0.11.0",
+        "backend": "cpu",
+        "devices": [
+          {
+            "id": 0,
+            "platform": "cpu",
+            "device_kind": "cpu"
+          }
+        ],
+        "x64_enabled": true
+      }
+    },
+    "git": {
+      "available": true,
+      "root": "/Users/bittner_1/Documents/ChatGPT/SAKE-DT Development/Duhamel_Transport",
+      "commit": "ad3324925a1ab989747f04318e24be8c0c567a38",
+      "branch": "codex/bloch-geometry-autodiff",
+      "dirty": true
+    },
+    "run": {
+      "command": [
+        "run_dimer_endpoint_recovery.py",
+        "--output",
+        "docs/benchmarks/covariant_endpoint_transport/endpoint/recovery.json",
+        "--n-omega",
+        "3",
+        "--t2",
+        "0.8",
+        "--truth",
+        "0.025",
+        "0.014",
+        "0.022",
+        "--seed",
+        "0",
+        "--random-starts",
+        "0"
+      ],
+      "working_directory": "/Users/bittner_1/Documents/ChatGPT/SAKE-DT Development/Duhamel_Transport",
+      "started_at": "2026-10-21T15:58:05.982851+00:00",
+      "finished_at": "2026-10-21T15:58:12.171323+00:00",
+      "elapsed_seconds": 6.188472,
+      "exit_code": 0,
+      "model": {
+        "controls": [
+          "J_12",
+          "k_12",
+          "gamma_phi"
+        ],
+        "n_omega": 3,
+        "t2": 0.8
+      },
+      "seeds": {
+        "inversion": 0
+      }
+    }
+  },
+  "wall_seconds": 6.316304499981925
+}

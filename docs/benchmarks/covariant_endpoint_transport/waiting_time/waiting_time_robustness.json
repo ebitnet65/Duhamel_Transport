@@ -1,0 +1,290 @@
+{
+  "schema_version": 1,
+  "control_order": [
+    "J_12",
+    "k_12",
+    "gamma_phi"
+  ],
+  "frequency_grid": [
+    0.86,
+    1.09,
+    1.32
+  ],
+  "waiting_times": [
+    0.2,
+    0.8
+  ],
+  "spectrum_config": {
+    "eta": 0.03,
+    "mean_site_energy": 1.09,
+    "detuning": 0.18,
+    "beta": 2.5
+  },
+  "recovery_config": {
+    "bounds": [
+      [
+        -0.1,
+        0.1
+      ],
+      [
+        0.0001,
+        0.03
+      ],
+      [
+        0.0001,
+        0.04
+      ]
+    ],
+    "n_random_starts": 0,
+    "seed": 0
+  },
+  "analysis": {
+    "truth_endpoint": [
+      0.025,
+      0.014,
+      0.022
+    ],
+    "diagnostics": [
+      {
+        "waiting_time": 0.2,
+        "endpoint": [
+          0.025000000090805108,
+          0.014000000587338449,
+          0.021999999863939253
+        ],
+        "endpoint_drift": 6.09692174216165e-10,
+        "residual_norm": 3.8548878757111936e-07,
+        "relative_residual_norm": 7.644315601867697e-10,
+        "jacobian_singular_values": [
+          8150.871057628513,
+          6504.679877996927,
+          387.728098148104
+        ],
+        "jacobian_condition_number": 21.02213147966143,
+        "generalized_eigenvalues": [
+          27595379.442458674,
+          616717.922290964,
+          3729.157191429246
+        ],
+        "generalized_effective_rank": 3,
+        "generalized_condition_number": 7399.897088243256,
+        "information_metric": [
+          [
+            55084814.775217906,
+            -7943924.263559343,
+            -10191342.241138183
+          ],
+          [
+            -7943924.263559343,
+            4996675.139250683,
+            14625029.292131517
+          ],
+          [
+            -10191342.241138183,
+            14625029.292131517,
+            48816402.476929314
+          ]
+        ]
+      },
+      {
+        "waiting_time": 0.8,
+        "endpoint": [
+          0.02499999991083326,
+          0.013999999356321185,
+          0.02200000009708135
+        ],
+        "endpoint_drift": 6.570372234783077e-10,
+        "residual_norm": 6.223219243953573e-07,
+        "relative_residual_norm": 1.2623249819798641e-09,
+        "jacobian_singular_values": [
+          7976.583280551189,
+          6492.591591412895,
+          335.3034826605072
+        ],
+        "jacobian_condition_number": 23.789145335622514,
+        "generalized_eigenvalues": [
+          27330341.91136127,
+          594104.702096744,
+          2789.055755562989
+        ],
+        "generalized_effective_rank": 3,
+        "generalized_condition_number": 9799.137882722056,
+        "information_metric": [
+          [
+            54560902.34703117,
+            -8316288.214957538,
+            -8481945.392765455
+          ],
+          [
+            -8316288.214957538,
+            5037552.6357023725,
+            14100161.960671531
+          ],
+          [
+            -8481945.392765455,
+            14100161.960671531,
+            46293599.84720495
+          ]
+        ]
+      }
+    ],
+    "joint_information_metric": [
+      [
+        109645717.12224907,
+        -16260212.47851688,
+        -18673287.633903638
+      ],
+      [
+        -16260212.47851688,
+        10034227.774953056,
+        28725191.25280305
+      ],
+      [
+        -18673287.633903638,
+        28725191.25280305,
+        95110002.32413426
+      ]
+    ],
+    "joint_generalized_eigenvalues": [
+      54925402.12102181,
+      1210961.5539319897,
+      6698.517875107371
+    ],
+    "joint_effective_rank": 3,
+    "joint_condition_number": 8199.635075265274
+  },
+  "recoveries": {
+    "0.2": {
+      "endpoint": [
+        0.025000000090805108,
+        0.014000000587338449,
+        0.021999999863939253
+      ],
+      "best_start": [
+        0.0,
+        0.01505,
+        0.020050000000000002
+      ],
+      "success": true,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "objective": 2.9217770736655915e-19,
+      "relative_spectral_residual": 7.644315601867697e-10,
+      "endpoint_absolute_error": 6.09692174216165e-10,
+      "endpoint_relative_error": 1.6877393056950484e-08,
+      "gradient_norm": 7.926920357428832e-09,
+      "iterations": 18,
+      "evaluations": 20,
+      "jacobian_singular_values": [
+        8150.871057628513,
+        6504.679877996927,
+        387.728098148104
+      ],
+      "jacobian_condition_number": 21.02213147966143,
+      "jacobian_rank": 3,
+      "runs": [
+        {
+          "start": [
+            0.0,
+            0.01505,
+            0.020050000000000002
+          ],
+          "endpoint": [
+            0.025000000090805108,
+            0.014000000587338449,
+            0.021999999863939253
+          ],
+          "success": true,
+          "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+          "objective": 2.9217770736655915e-19,
+          "gradient_norm": 7.926920357428832e-09,
+          "iterations": 18,
+          "evaluations": 20
+        },
+        {
+          "start": [
+            0.04,
+            0.006,
+            0.012
+          ],
+          "endpoint": [
+            0.025000000489193056,
+            0.014000005065218283,
+            0.021999998949837726
+          ],
+          "success": true,
+          "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+          "objective": 2.1095732720826774e-17,
+          "gradient_norm": 7.47484092853817e-08,
+          "iterations": 18,
+          "evaluations": 21
+        }
+      ]
+    },
+    "0.8": {
+      "endpoint": [
+        0.02499999991083326,
+        0.013999999356321185,
+        0.02200000009708135
+      ],
+      "best_start": [
+        0.0,
+        0.01505,
+        0.020050000000000002
+      ],
+      "success": true,
+      "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "objective": 7.967321450892446e-19,
+      "relative_spectral_residual": 1.2623249819798641e-09,
+      "endpoint_absolute_error": 6.570372234783077e-10,
+      "endpoint_relative_error": 1.8187990501841684e-08,
+      "gradient_norm": 1.647230185783895e-08,
+      "iterations": 18,
+      "evaluations": 20,
+      "jacobian_singular_values": [
+        7976.583280551189,
+        6492.591591412895,
+        335.3034826605072
+      ],
+      "jacobian_condition_number": 23.789145335622514,
+      "jacobian_rank": 3,
+      "runs": [
+        {
+          "start": [
+            0.0,
+            0.01505,
+            0.020050000000000002
+          ],
+          "endpoint": [
+            0.02499999991083326,
+            0.013999999356321185,
+            0.02200000009708135
+          ],
+          "success": true,
+          "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+          "objective": 7.967321450892446e-19,
+          "gradient_norm": 1.647230185783895e-08,
+          "iterations": 18,
+          "evaluations": 20
+        },
+        {
+          "start": [
+            0.04,
+            0.006,
+            0.012
+          ],
+          "endpoint": [
+            0.02500000137162145,
+            0.014000014493690571,
+            0.02199999805952692
+          ],
+          "success": true,
+          "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+          "objective": 5.278058431910712e-16,
+          "gradient_norm": 4.621309151166179e-07,
+          "iterations": 18,
+          "evaluations": 22
+        }
+      ]
+    }
+  }
+}

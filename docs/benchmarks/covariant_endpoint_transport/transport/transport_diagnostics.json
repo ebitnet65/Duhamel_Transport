@@ -1,0 +1,54 @@
+{
+  "beta_12": 2.5,
+  "control_names": [
+    "J_12",
+    "k_12",
+    "gamma_phi"
+  ],
+  "fixed_detuning": 0.18,
+  "geodesic": {
+    "endpoint_error": 0.0,
+    "energy": 0.03502272970022473,
+    "function_evaluations": 902,
+    "iterations": 25,
+    "max_coordinate_displacement": {
+      "J_12": 1.926064253920945e-08,
+      "gamma_phi": 0.001793334508739048,
+      "k_12": 0.0010023461084922051
+    },
+    "maximum_metric_condition": 250.00000000000006,
+    "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+    "minimum_metric_determinant": 6658.568247379436,
+    "relative_energy_reduction": 0.04864743348687578,
+    "straight_energy": 0.03681361771965281,
+    "success": true
+  },
+  "model": "exciton_dimer_coupling_transfer_collective_dephasing",
+  "n_vertices": 9,
+  "q_star": [
+    0.02499999991083326,
+    0.013999999356321185,
+    0.02200000009708135
+  ],
+  "reference": [
+    0.07,
+    0.003,
+    0.004
+  ],
+  "schema_version": 1,
+  "timing_seconds": {
+    "geodesic_solve": 1.2420697079505771,
+    "geodesic_transport": 0.03920191712677479,
+    "geometry_build": 1.1299179170746356,
+    "straight_transport": 0.03971750009804964
+  },
+  "transport": {
+    "endpoint_frame_frobenius_difference": 4.334806730412639e-12,
+    "geodesic_max_gram_error": 6.384297166774789e-12,
+    "geodesic_rhs_evaluations": 328,
+    "geodesic_success": true,
+    "straight_max_gram_error": 8.66638440927608e-11,
+    "straight_rhs_evaluations": 328,
+    "straight_success": true
+  }
+}

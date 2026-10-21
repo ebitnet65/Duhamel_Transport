@@ -124,7 +124,7 @@ autodiff gradient supplied directly to L-BFGS-B, followed by batched metric
 evaluation over path nodes. A later benchmark must vary control dimension,
 path resolution, and spectral-pixel count independently.
 
-### Planned endpoint-discovery workflow
+### Covariant endpoint-discovery milestone
 
 The experimental truth observable is an endpoint property and does not depend
 on the path:
@@ -133,7 +133,8 @@ on the path:
 Y_{\mathrm{truth}}=\mathcal O(q_{\mathrm{true}}).
 \]
 
-Development will keep endpoint inference and route discovery separate:
+The first complete covariant benchmark now keeps endpoint inference and route
+discovery separate:
 
 1. Discover the endpoint from the fixed 2D spectral observation,
 
@@ -146,13 +147,43 @@ Development will keep endpoint inference and route discovery separate:
    \(q_{\mathrm{true}}\).
 3. With \(q^\star\) fixed, solve the boundary-value problem
    \(\gamma(0)=p\), \(\gamma(1)=q^\star\) by minimizing physical path energy.
-4. Parallel-transport the local pathway frame along \(\gamma_{p q^\star}\).
+4. Parallel-transport a control-manifold tangent frame along
+   \(\gamma_{p q^\star}\).
 
-The initial synthetic recovery test will omit geodesic-distance regularization
-so the reference model cannot bias endpoint discovery. For a 2D spectrum with
-many pixels and relatively few controls, the planned inverse solver is
-bounded matrix-free Gauss--Newton or Levenberg--Marquardt using JAX JVP/VJP
-operations.
+The implemented synthetic recovery test omits geodesic-distance regularization,
+so the reference model cannot bias endpoint discovery. It uses deterministic
+bounded multistart L-BFGS-B with exact JAX gradients. The recovered endpoint is
+then frozen before the geodesic boundary-value problem is solved.
+
+For the archived three-control dimer test,
+
+\[
+q_{\mathrm{true}}=(0.025,0.014,0.022),
+\qquad
+p=(0.070,0.003,0.004),
+\]
+
+the inversion reached a relative spectral residual of \(1.26\times10^{-9}\).
+The nine-vertex geodesic reduced physical path energy by 4.86 percent relative
+to coordinate-space straight interpolation while reaching the recovered
+endpoint exactly. Tangent-frame metric compatibility was preserved to better
+than \(10^{-10}\).
+
+This is the central distinction from the earlier JCPIV_SAKE calculation. That
+work established local spectral/autodiff expansion and endpoint recovery but
+did not construct a physical control-manifold metric, solve the geodesic
+boundary-value problem, or parallel-transport a frame on that manifold. The
+present milestone adds those geometric operations downstream of a strictly
+path-independent spectral inversion.
+
+The present parallel transport is deliberately limited to tangent frames of
+the physical control manifold. Parallel transport of the actual Liouville
+pathway frame remains the next major milestone; it must compare the ordered
+product of local pathway-transport maps along the geodesic with the
+straight-line construction used in the earlier SAKE workflow.
+
+The checked-in numerical record, reproduction commands, and limitations are
+in `docs/benchmarks/covariant_endpoint_transport/README.md`.
 
 Endpoint robustness will be characterized using the spectral residual
 Jacobian, multi-start recovery, synthetic-noise ensembles, bootstrap/profile
@@ -167,7 +198,7 @@ must remain conceptually separate from the physical Liouvillian metric
 mapped to a bundle of geodesics from \(p\), propagating inference uncertainty
 into route and transported-frame uncertainty.
 
-### Planned waiting-time robustness benchmark
+### Waiting-time robustness benchmark
 
 Endpoint recovery must also be tested against the population waiting time
 \(t_2\). The truth endpoint remains one fixed, discoverable model
@@ -178,7 +209,8 @@ the endpoint or the physical control vector:
 Y_{\mathrm{truth}}(t_2)=\mathcal O(q_{\mathrm{true}};t_2).
 \]
 
-The benchmark will contain three complementary tests:
+The archived noiseless benchmark completes the first test below. The timing
+misspecification and shared noisy multi-time inversions remain planned:
 
 1. **Correctly specified independent recovery.** Generate and fit each spectrum
    at the same \(t_2\). The recovered endpoints \(q^\star(t_2)\) should agree

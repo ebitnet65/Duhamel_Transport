@@ -110,3 +110,21 @@ publication figures for parameter drift, residual growth, and the strongest
 completed trap case. The sweep interpretation remains conditional on the
 specified spectral window, grid, control bounds, and noiseless least-squares
 objective; it is not an uncertainty or mechanism-identification result.
+
+The initial completed batch (`kd = 0.003, 0.01, 0.03, 0.1`) shows increasing
+model mismatch:
+
+| `kd` | joint `(J12, k12, gamma_phi)` | joint relative complex L2 error over `t2 = 0.2, 1, 4` |
+|---:|---|---|
+| 0.003 | (0.02558, 0.01240, 0.02256) | 0.72%, 0.72%, 0.77% |
+| 0.01 | (0.02689, 0.00880, 0.02383) | 2.31%, 2.30%, 2.43% |
+| 0.03 | (0.03062, 0.00200, 0.02642) | 6.18%, 6.14%, 6.23% |
+| 0.1 | (0.04268, 0.00200, 0.02824) | 14.71%, 14.42%, 13.34% |
+
+At `kd = 0.03`, the joint fit drives `k12` to its imposed lower bound of
+`0.002`; at `kd = 0.1`, all independent fits do so as well. Meanwhile `J12`
+and `gamma_phi` move away from their constant truth values. This is strong
+evidence that the three-control model is failing to absorb the trap's spectral
+effect under the stated fit and grid. These noiseless residuals do not by
+themselves imply experimental significance or identify the missing mechanism.
+Additional runs at stronger `kd` are being evaluated separately.

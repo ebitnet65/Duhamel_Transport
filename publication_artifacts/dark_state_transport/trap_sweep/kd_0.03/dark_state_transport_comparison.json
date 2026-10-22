@@ -1,0 +1,251 @@
+{
+  "truth": "full trace-preserving dimer plus terminal dark sink; optical dipole has no dark-state element",
+  "candidate": "three-parameter sink-free dimer represented by an order-N Duhamel transport expansion from q_truth",
+  "truth_parameters": {
+    "J12": 0.025,
+    "k12": 0.014,
+    "gamma_phi": 0.022
+  },
+  "trap_rate": 0.03,
+  "control_scales": [
+    0.05,
+    0.015,
+    0.025
+  ],
+  "grid": {
+    "nfreq": 21,
+    "projection_nfreq": 5,
+    "omega_min": 0.9,
+    "omega_max": 1.28,
+    "eta": 0.035
+  },
+  "waiting_times": [
+    0.2,
+    1.0,
+    4.0
+  ],
+  "n_quad": 2,
+  "duhamel_order": 3,
+  "fit_bound_in_scaled_controls": 0.8,
+  "normalization": "single truth-derived RMS integrated spectral power shared across waits, truth, transport, and residuals",
+  "full_five_state_vs_active_block_relative_error": 3.0027475976804194e-15,
+  "joint_fit": {
+    "lambda": [
+      0.11244393630489945,
+      -0.7999999999998509,
+      0.1768620340680271
+    ],
+    "q": [
+      0.030622196815244973,
+      0.002000000000002236,
+      0.026421550851700677
+    ],
+    "cost": 704872.3057038246,
+    "success": true,
+    "nfev": 9,
+    "optimality": 0.0032884233094065077
+  },
+  "per_time_fits": {
+    "0.2": {
+      "lambda": [
+        0.11697072533814606,
+        -0.7999999999999999,
+        0.17638369923734037
+      ],
+      "q": [
+        0.030848536266907305,
+        0.0020000000000000018,
+        0.026409592480933507
+      ],
+      "cost": 260170.15156583663,
+      "success": true,
+      "nfev": 8,
+      "optimality": 0.00010209483946379648
+    },
+    "1.0": {
+      "lambda": [
+        0.11666680462867458,
+        -0.7999999999999904,
+        0.17777419385850074
+      ],
+      "q": [
+        0.03083334023143373,
+        0.0020000000000001458,
+        0.026444354846462518
+      ],
+      "cost": 242305.73820549363,
+      "success": true,
+      "nfev": 7,
+      "optimality": 0.00014147439588451492
+    },
+    "4.0": {
+      "lambda": [
+        0.1360595351637396,
+        -0.34763716045143667,
+        0.09663869520429687
+      ],
+      "q": [
+        0.03180297675818698,
+        0.00878544259322845,
+        0.02441596738010742
+      ],
+      "cost": 197268.21711689924,
+      "success": true,
+      "nfev": 7,
+      "optimality": 1.7430395231543108
+    }
+  },
+  "spectral_fit_diagnostics": {
+    "joint_relative_complex_l2_by_waiting_time": {
+      "0.2": 0.06184337396351648,
+      "1.0": 0.0613870465156154,
+      "4.0": 0.062260677062560776
+    },
+    "per_time_relative_complex_l2_by_waiting_time": {
+      "0.2": 0.061817123411555853,
+      "1.0": 0.06137022258410415,
+      "4.0": 0.061520660675986924
+    },
+    "objective": "unweighted sum of squared real and imaginary complex-spectrum residuals"
+  },
+  "basis_diagnostics": {
+    "0.2": {
+      "sectors": [
+        {
+          "sector": "RP",
+          "n_canonical": 8,
+          "n_retained": 3,
+          "max_unselected_pathway_residual": 0.0
+        },
+        {
+          "sector": "NRP",
+          "n_canonical": 8,
+          "n_retained": 3,
+          "max_unselected_pathway_residual": 0.0
+        }
+      ],
+      "reference_observable_relative_error": 9.300641457590212e-15
+    },
+    "1.0": {
+      "sectors": [
+        {
+          "sector": "RP",
+          "n_canonical": 8,
+          "n_retained": 3,
+          "max_unselected_pathway_residual": 0.0
+        },
+        {
+          "sector": "NRP",
+          "n_canonical": 8,
+          "n_retained": 3,
+          "max_unselected_pathway_residual": 0.0
+        }
+      ],
+      "reference_observable_relative_error": 9.39435937741183e-16
+    },
+    "4.0": {
+      "sectors": [
+        {
+          "sector": "RP",
+          "n_canonical": 8,
+          "n_retained": 3,
+          "max_unselected_pathway_residual": 0.0
+        },
+        {
+          "sector": "NRP",
+          "n_canonical": 8,
+          "n_retained": 3,
+          "max_unselected_pathway_residual": 0.0
+        }
+      ],
+      "reference_observable_relative_error": 7.614019463291009e-16
+    }
+  },
+  "liouvillian_derivative_multiindices": [
+    [],
+    [
+      0
+    ],
+    [
+      1
+    ],
+    [
+      2
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      2
+    ],
+    [
+      1,
+      1
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      2,
+      2
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      2
+    ],
+    [
+      0,
+      1,
+      1
+    ],
+    [
+      0,
+      1,
+      2
+    ],
+    [
+      0,
+      2,
+      2
+    ],
+    [
+      1,
+      1,
+      1
+    ],
+    [
+      1,
+      1,
+      2
+    ],
+    [
+      1,
+      2,
+      2
+    ],
+    [
+      2,
+      2,
+      2
+    ]
+  ],
+  "interpretation": "The transported fit is an approximation to dark-state truth under the specified candidate, basis, frequency grid, and bounds. A better spectral fit does not identify the microscopic omitted mechanism."
+}

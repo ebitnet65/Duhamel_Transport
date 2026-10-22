@@ -1003,3 +1003,5 @@ For the completed sweep and its quantitative caveats, see the
 `Trap-rate stress sweep` section of the dark-state technical notes. The checked-in
 overview figure is
 `publication_artifacts/dark_state_transport/trap_sweep/figure_dark_state_trap_rate_sweep.pdf`.
+The standalone results report is
+[`docs/dark_state_trap_rate_sweep_summary.md`](docs/dark_state_trap_rate_sweep_summary.md).

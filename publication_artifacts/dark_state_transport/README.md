@@ -111,7 +111,7 @@ completed trap case. The sweep interpretation remains conditional on the
 specified spectral window, grid, control bounds, and noiseless least-squares
 objective; it is not an uncertainty or mechanism-identification result.
 
-The initial completed batch (`kd = 0.003, 0.01, 0.03, 0.1`) shows increasing
+The completed sweep (`kd = 0.003, 0.01, 0.03, 0.1, 0.3, 1.0`) shows increasing
 model mismatch:
 
 | `kd` | joint `(J12, k12, gamma_phi)` | joint relative complex L2 error over `t2 = 0.2, 1, 4` |
@@ -120,11 +120,16 @@ model mismatch:
 | 0.01 | (0.02689, 0.00880, 0.02383) | 2.31%, 2.30%, 2.43% |
 | 0.03 | (0.03062, 0.00200, 0.02642) | 6.18%, 6.14%, 6.23% |
 | 0.1 | (0.04268, 0.00200, 0.02824) | 14.71%, 14.42%, 13.34% |
+| 0.3 | (0.06023, 0.00200, 0.03247) | 22.70%, 21.72%, 18.75% |
+| 1.0 | (0.06500, 0.00728, 0.04000) | 30.37%, 28.20%, 25.97% |
 
 At `kd = 0.03`, the joint fit drives `k12` to its imposed lower bound of
-`0.002`; at `kd = 0.1`, all independent fits do so as well. Meanwhile `J12`
-and `gamma_phi` move away from their constant truth values. This is strong
-evidence that the three-control model is failing to absorb the trap's spectral
-effect under the stated fit and grid. These noiseless residuals do not by
-themselves imply experimental significance or identify the missing mechanism.
-Additional runs at stronger `kd` are being evaluated separately.
+`0.002`; at `kd = 0.1`, all independent fits do so as well. `J12` and
+`gamma_phi` move away from their constant truth values. At `kd = 0.3`, the
+joint and all independent `k12` estimates remain at the lower bound. At
+`kd = 1.0`, the joint fit instead reaches the imposed upper bounds on `J12`
+and `gamma_phi`; joint `k12` moves back into the interior, but residuals remain
+above 25% at every waiting time. This rebound is a boundary/compensation
+effect, not restoration of a credible dimer parameterization. These noiseless
+residuals establish model stress in this controlled setting but do not imply
+experimental significance or identify the missing mechanism.

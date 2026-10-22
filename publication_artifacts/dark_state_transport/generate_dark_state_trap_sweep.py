@@ -105,7 +105,7 @@ def _save_trend_figure(records,out):
 
 def _save_high_trap_spectra(record,out):
     times=np.asarray(record["times"])
-    ti=int(np.argmax(times))
+    ti=int(np.argmax(record["joint_relative_complex_l2"]))
     grid=record["omega_grid"]
     truth=record["truth_spectra"][ti]/record["normalization"]
     fit=record["joint_spectra"][ti]/record["normalization"]
@@ -127,7 +127,7 @@ def _save_high_trap_spectra(record,out):
         ax.set_title(title,loc="left",fontweight="bold")
         ax.set_xlabel(r"$\omega_1$ (eV)"); ax.set_ylabel(r"$\omega_3$ (eV)")
         fig.colorbar(im,ax=ax,fraction=.046,pad=.03)
-    fig.suptitle(rf"Strongest completed trap case: $k_d={record['kd']:g}$, $t_2={times[ti]:g}$",
+    fig.suptitle(rf"Largest relative residual: $k_d={record['kd']:g}$, $t_2={times[ti]:g}$",
                  fontsize=13,fontweight="bold")
     fig.savefig(out/"figure_dark_state_strong_trap_residuals.pdf",bbox_inches="tight")
     fig.savefig(out/"figure_dark_state_strong_trap_residuals.png",dpi=600,bbox_inches="tight")
@@ -150,7 +150,7 @@ def main():
         summary.append({k:v for k,v in r.items() if k not in {"times","truth_spectra","joint_spectra","per_time_spectra","omega_grid"}})
     (output/"dark_state_trap_sweep_summary.json").write_text(json.dumps(summary,indent=2,allow_nan=False)+"\n")
     with (output/"dark_state_trap_sweep_metrics.csv").open("w",newline="") as f:
-        writer=csv.writer(f)
+        writer=csv.writer(f,lineterminator="\n")
         writer.writerow(["kd","fit","waiting_time","J12","k12","gamma_phi","relative_complex_l2"])
         for r in records:
             for kind,param_key,error_key in (("joint","joint_parameters","joint_relative_complex_l2"),

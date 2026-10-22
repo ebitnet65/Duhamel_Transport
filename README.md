@@ -999,7 +999,7 @@ directories contain completed runs, summarize the full sweep with:
 MPLCONFIGDIR=/tmp/mpl-dark-state python publication_artifacts/dark_state_transport/generate_dark_state_trap_sweep.py
 ```
 
-For the completed initial sweep and its quantitative caveats, see the
+For the completed sweep and its quantitative caveats, see the
 `Trap-rate stress sweep` section of the dark-state technical notes. The checked-in
 overview figure is
 `publication_artifacts/dark_state_transport/trap_sweep/figure_dark_state_trap_rate_sweep.pdf`.

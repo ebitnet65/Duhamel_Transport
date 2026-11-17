@@ -121,6 +121,15 @@ def main():
           stationary_trace=float(np.trace(rho).real),
           steady_residual=float(np.linalg.norm(L@vec(rho))),
           spectral_gap=float(np.min(decay)) if decay.size else 0.0))
+    # Compare dephasing-rate changes to the gamma_phi=0.10 map at fixed theta,t2.
+    for record in records:
+        it=int(np.flatnonzero(THETAS==record["theta"])[0])
+        jt=int(np.flatnonzero(T2S==record["t2"])[0])
+        ig=int(np.flatnonzero(GPHIS==record["gamma_phi"])[0])
+        rate_ref=maps[1,it,jt]
+        den=np.trapezoid(np.trapezoid(abs(rate_ref)**2,omegas,axis=1),omegas)
+        err=np.trapezoid(np.trapezoid(abs(maps[ig,it,jt]-rate_ref)**2,omegas,axis=1),omegas)
+        record["relative_map_change_from_reference_rate"]=float(np.sqrt(err/max(den,1e-30)))
     np.savez_compressed(out/"response_maps.npz",omegas=omegas,thetas=THETAS,gamma_phis=GPHIS,t2s=T2S,
       gamma1=GAMMA1,gamma_phi_reference=GPHI_REF,w0=W0,eta=ETA,signals=maps)
     # Geometry grid with finite-difference step convergence at one interior point.
@@ -140,37 +149,42 @@ def main():
       generator_scale=1.0),spectra=records,geometry=geom,geometry_step_convergence=conv,
       elapsed_s=time.time()-t0)
     (out/"summary.json").write_text(json.dumps(summary,indent=2))
-    # Exploratory summary maps, centered at gamma_phi=.1,t2=1.
+    # Summary figures use shared color limits within each plotted row.
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     ig=1; jt=1
-    fig,axes=plt.subplots(2,3,figsize=(12,7),constrained_layout=True)
     extent=[omegas[0],omegas[-1],omegas[0],omegas[-1]]
+    full_maps=maps[ig,:,jt]
+    full_min=float(full_maps.real.min()); full_max=float(full_maps.real.max())
+    diffmax=float(max(np.max(abs(full_maps[i]-full_maps[0])) for i in range(len(THETAS))))
+    fig,axes=plt.subplots(2,3,figsize=(12,7),constrained_layout=True)
     for i,theta in enumerate(THETAS):
-      im0=axes[0,i].imshow(maps[ig,i,jt].real,origin="lower",extent=extent,aspect="auto",cmap="RdBu_r")
+      im0=axes[0,i].imshow(full_maps[i].real,origin="lower",extent=extent,aspect="auto",cmap="RdBu_r",vmin=full_min,vmax=full_max)
       axes[0,i].set_title(rf"$\theta={theta:.3f}$")
       axes[0,i].set_xlabel(r"$\omega_1$")
       axes[0,i].set_ylabel(r"$\omega_3$")
-      fig.colorbar(im0,ax=axes[0,i],shrink=.8,label=r"$\mathrm{Re}\,S_R^{(3)}$")
-      delta=maps[ig,i,jt]-maps[ig,0,jt]
-      im1=axes[1,i].imshow(abs(delta),origin="lower",extent=extent,aspect="auto",cmap="magma")
+      delta=full_maps[i]-full_maps[0]
+      im1=axes[1,i].imshow(abs(delta),origin="lower",extent=extent,aspect="auto",cmap="magma",vmin=0,vmax=diffmax)
       axes[1,i].set_xlabel(r"$\omega_1$")
       axes[1,i].set_ylabel(r"$\omega_3$")
-      fig.colorbar(im1,ax=axes[1,i],shrink=.8,label=r"$|\Delta S_R^{(3)}|$")
+    fig.colorbar(im0,ax=axes[0,:].tolist(),shrink=.82,label=r"$\mathrm{Re}\,S_R^{(3)}$")
+    fig.colorbar(im1,ax=axes[1,:].tolist(),shrink=.82,label=r"$|\Delta S_R^{(3)}|$")
     fig.suptitle(r"Full rephasing maps: $\gamma_\phi=0.1$, $t_2=1$")
     fig.savefig(out/"figure_full_2d_maps.png",dpi=180)
-    # t2 sensitivity at maximal misalignment and reference gamma_phi.
+    # Waiting-time sensitivity at maximal misalignment and reference dephasing.
+    deltas=np.asarray([maps[1,2,j]-maps[1,0,j] for j in range(len(T2S))])
+    real_min=float(deltas.real.min()); real_max=float(deltas.real.max())
+    delta_max=float(np.max(abs(deltas)))
     fig,axes=plt.subplots(2,3,figsize=(12,7),constrained_layout=True)
     for j,t2 in enumerate(T2S):
-      delta=maps[1,2,j]-maps[1,0,j]
-      im=axes[0,j].imshow(delta.real,origin="lower",extent=extent,aspect="auto",cmap="RdBu_r")
+      im0=axes[0,j].imshow(deltas[j].real,origin="lower",extent=extent,aspect="auto",cmap="RdBu_r",vmin=real_min,vmax=real_max)
       axes[0,j].set_title(rf"$t_2={t2:g}$")
       axes[0,j].set_xlabel(r"$\omega_1$"); axes[0,j].set_ylabel(r"$\omega_3$")
-      fig.colorbar(im,ax=axes[0,j],shrink=.8,label=r"$\mathrm{Re}\,\Delta S_R^{(3)}$")
-      im=axes[1,j].imshow(abs(delta),origin="lower",extent=extent,aspect="auto",cmap="magma")
+      im1=axes[1,j].imshow(abs(deltas[j]),origin="lower",extent=extent,aspect="auto",cmap="magma",vmin=0,vmax=delta_max)
       axes[1,j].set_xlabel(r"$\omega_1$"); axes[1,j].set_ylabel(r"$\omega_3$")
-      fig.colorbar(im,ax=axes[1,j],shrink=.8,label=r"$|\Delta S_R^{(3)}|$")
+    fig.colorbar(im0,ax=axes[0,:].tolist(),shrink=.82,label=r"$\mathrm{Re}\,\Delta S_R^{(3)}$")
+    fig.colorbar(im1,ax=axes[1,:].tolist(),shrink=.82,label=r"$|\Delta S_R^{(3)}|$")
     fig.suptitle(r"Waiting-time dependence: $\theta=\pi/2$, $\gamma_\phi=0.1$")
     fig.savefig(out/"figure_waiting_time_maps.png",dpi=180)
     print(f"{len(records)} maps; grid {args.n_omega}x{args.n_omega}; geometry points {len(geom)}; elapsed {time.time()-t0:.2f}s")

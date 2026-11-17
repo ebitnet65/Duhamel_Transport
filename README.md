@@ -63,11 +63,11 @@ python calculate_two_control_spectroscopy.py --n-omega 61 --out two_control_spec
 
 ## Three-Level Bright-State Calculation
 
-The three-level extension uses the lower and upper eigenstates of the SAKE
-dimer one-exciton Hamiltonian as `B1` and `B2`, but omits the double-exciton
-state. It adds one-way `B2 -> B1` relaxation and computes full RP, NRP, and
-absorptive maps over waiting time and transfer rate. The model and spectral
-conventions are documented in
+The three-level extension uses the lower and upper eigenstates of the dimer
+one-exciton Hamiltonian as `B1` and `B2`, and omits the double-exciton state.
+It adds one-way `B2 -> B1` relaxation, computes exact RP/NRP/absorptive maps,
+then finite-differences those maps in `kappa` for a local second-order
+reconstruction. Model and numerical details are documented in
 [`docs/three_level_bright_spectroscopy.md`](docs/three_level_bright_spectroscopy.md).
 
 Run it with:

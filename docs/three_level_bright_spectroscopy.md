@@ -49,3 +49,19 @@ This is a focused bright-state extension for the JCP3 revision. It uses the
 dimer's one-exciton Hamiltonian and dipoles as a parameter source, but it does
 not reproduce the four-level SAKE benchmark or its autodifferentiable
 transport calculation.
+
+## Finite-difference reconstruction
+
+The exact RP and NRP maps are central-differenced with respect to \(\kappa\)
+about \(\kappa_0=0.03\). The default selected step is \(h=0.005\); steps
+0.0025 and 0.01 provide a derivative step-sensitivity check. First and second
+map derivatives are combined into the local quadratic reconstruction
+\[
+S^{(2)}(\kappa)=S(\kappa_0)+(\kappa-\kappa_0)S'(\kappa_0)
++\tfrac12(\kappa-\kappa_0)^2S''(\kappa_0).
+\]
+At \(t_2=10\), its relative integrated L2 error is 0.328 at \(\kappa=0\) and
+0.400 at \(\kappa=0.06\). The first-derivative maps change by about 0.98%
+between steps 0.0025 and 0.005 over the waiting-time scan. These figures
+separate the numerical FD derivative/reconstruction from the exact spectra
+being reconstructed.

@@ -7,8 +7,8 @@ Hamiltonian
 \[
 H_1=\begin{pmatrix}\omega_1&J_{12}\\J_{12}&\omega_2\end{pmatrix},
 \]
-using the SAKE dimer reference values \(\omega_1=1\), \(\omega_2=1.18\),
-and \(J_{12}=0.045\). Equal parallel site dipoles define the two transition
+using the dimer site energies from the SAKE parameterization \(\omega_1=1\), \(\omega_2=1.18\),
+and the \(J_{12}=0.045\) coupling used in the repository's dimer spectral diagnostic. Equal parallel site dipoles define the two transition
 moments in the bright basis. The resulting energies are approximately
 0.98938 and 1.19062.
 

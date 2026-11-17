@@ -76,6 +76,20 @@ Run it with:
 python calculate_three_level_bright_spectra.py --n-omega 81 --out three_level_bright_spectra
 ```
 
+## TLS Theta–Gamma-Phi Geometry Surface
+
+The two-control TLS calculation finite-differences full RP, NRP, and
+absorptive spectra over `(theta,gamma_phi)), computes the induced
+state-generator metric and Levi-Civita connection, and transports the
+metric-raised spectral-sensitivity maps around a closed loop. This is a
+sensitivity holonomy diagnostic; it does not make the static endpoint
+spectrum path-dependent. Details and reproducibility instructions are in
+[`docs/tls_theta_gamma_surface.md`](docs/tls_theta_gamma_surface.md).
+
+```bash
+python calculate_tls_theta_gamma_surface.py --n-omega 51 --out tls_theta_gamma_surface
+```
+
 ## Basic Run
 
 From this directory:

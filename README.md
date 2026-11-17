@@ -40,7 +40,7 @@ pathway components deform under the rotated dephasing Liouvillian.
 - `diagnose_transport_stages.py`: stage-by-stage basis conditioning diagnostics.
 - `run_all_diagnostics.sh`: runs both diagnostic scripts.
 
-## Basic Run
+## Two-Control Revision Calculation\n\nThe new exploratory calculation varies the dephasing-axis angle and dephasing\nrate, computes full rephasing maps over a small waiting-time scan, and checks\nthe induced state-generator metric and Gaussian curvature. See\n[`docs/two_control_spectroscopy.md`](docs/two_control_spectroscopy.md) for\nconventions and preliminary diagnostics. Run it with:\n\n```bash\npython calculate_two_control_spectroscopy.py --n-omega 61 --out two_control_spectroscopy\n```\n\n## Basic Run
 
 From this directory:
 

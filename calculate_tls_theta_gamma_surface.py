@@ -247,6 +247,12 @@ def main():
         item["difference_from_finest"] = float(np.linalg.norm(np.asarray(item["holonomy"]) - finest))
 
     ref_geometry = tls.geometry_point(q0[0], tls.GPHI_REF, h=(1e-4, 1e-4))
+    curvature_step_convergence = []
+    for h in (1e-3, 3e-4, 1e-4, 3e-5):
+        point = tls.geometry_point(q0[0], tls.GPHI_REF, h=(h, h))
+        curvature_step_convergence.append(dict(
+            step=h, gaussian_curvature=point["gaussian_curvature"],
+            metric_eigenvalues=point["metric_eigenvalues"]))
     summary = dict(
         model="rotated-dephasing TLS",
         controls=["theta", "gamma_phi/gamma_phi_reference"],
@@ -265,6 +271,7 @@ def main():
             embedding="real/imag stationary state plus full Liouvillian",
             generator_scale=1.0,
             reference=ref_geometry,
+            curvature_step_convergence=curvature_step_convergence,
             surface=geometry,
             loop_coordinates=[q.tolist() for q in loop],
             loop_connection="Levi-Civita connection of the induced state-generator metric",

@@ -29,8 +29,11 @@ GAMMA_B2 = 0.004
 GAMMA_PHI_B1 = 0.02
 GAMMA_PHI_B2 = 0.012
 ETA = 2e-3
-KAPPAS = np.array([0.0, 0.02, 0.06])
+KAPPAS = np.array([0.0, 0.02, 0.03, 0.06])
 T2S = np.array([0.2, 1.0, 5.0, 10.0])
+FD_CENTER = 0.03
+FD_STEP = 0.005
+FD_STEPS = np.array([0.0025, 0.005, 0.01])
 
 
 def make_model(kappa: float):
@@ -171,6 +174,73 @@ def main():
             nrp[ik, it], _ = sector_map(float(kappa), float(t2), omegas, "NRP")
             absorptive[ik, it] = -(rp[ik, it] + nrp[ik, it]).real
 
+    # Finite-difference the exact response maps with respect to the transfer
+    # rate, then build a second-order local reconstruction about kappa=0.02.
+    # This is the FD/Duhamel-style comparison; the maps above remain exact.
+    fd_cache = {}
+    for h in FD_STEPS:
+        for it, t2 in enumerate(t2s):
+            for sector in ("RP", "NRP"):
+                plus, _ = sector_map(float(FD_CENTER + h), float(t2), omegas, sector)
+                minus, _ = sector_map(float(FD_CENTER - h), float(t2), omegas, sector)
+                fd_cache[(float(h), it, sector)] = (plus, minus)
+
+    first_rp = np.empty((len(t2s), len(omegas), len(omegas)), complex)
+    second_rp = np.empty_like(first_rp)
+    first_nrp = np.empty_like(first_rp)
+    second_nrp = np.empty_like(first_rp)
+    for it in range(len(t2s)):
+        for sector, first_out, second_out in (
+            ("RP", first_rp, second_rp), ("NRP", first_nrp, second_nrp)
+        ):
+            plus, minus = fd_cache[(FD_STEP, it, sector)]
+            center = rp[np.flatnonzero(kappas == FD_CENTER)[0], it] if sector == "RP" else nrp[np.flatnonzero(kappas == FD_CENTER)[0], it]
+            first_out[it] = (plus - minus) / (2.0 * FD_STEP)
+            second_out[it] = (plus - 2.0 * center + minus) / (FD_STEP ** 2)
+
+    center_index = int(np.flatnonzero(kappas == FD_CENTER)[0])
+    center_absorptive = absorptive[center_index]
+    first_absorptive = -(first_rp + first_nrp).real
+    second_absorptive = -(second_rp + second_nrp).real
+    fd_reconstructed = np.empty_like(absorptive)
+    fd_records = []
+    for ik, kappa in enumerate(kappas):
+        delta = float(kappa - FD_CENTER)
+        fd_reconstructed[ik] = (center_absorptive + delta * first_absorptive
+                                + 0.5 * delta * delta * second_absorptive)
+        for it, t2 in enumerate(t2s):
+            diff = fd_reconstructed[ik, it] - absorptive[ik, it]
+            denom = np.trapezoid(np.trapezoid(abs(absorptive[ik, it]) ** 2,
+                                              omegas, axis=0), omegas)
+            err = np.trapezoid(np.trapezoid(abs(diff) ** 2, omegas, axis=0), omegas)
+            fd_records.append(dict(
+                kappa=float(kappa), t2=float(t2), expansion_center=FD_CENTER,
+                delta_kappa=delta,
+                relative_integrated_l2_error=float(np.sqrt(err / max(denom, 1e-30))),
+                max_absolute_error=float(np.max(abs(diff))),
+            ))
+
+    fd_step_convergence = []
+    for h in FD_STEPS:
+        deriv_norms = []
+        for it in range(len(t2s)):
+            plus_rp, minus_rp = fd_cache[(float(h), it, "RP")]
+            plus_nrp, minus_nrp = fd_cache[(float(h), it, "NRP")]
+            deriv_norms.append((-(plus_rp + plus_nrp).real
+                                + (minus_rp + minus_nrp).real) / (2.0 * h))
+        if float(h) == float(FD_STEPS[0]):
+            fd_reference_derivative = deriv_norms
+        fd_step_convergence.append(dict(
+            step=float(h),
+            derivative_relative_l2_to_smallest_step=[
+                float(np.sqrt(np.trapezoid(np.trapezoid(abs(deriv_norms[it] - fd_reference_derivative[it]) ** 2,
+                                                        omegas, axis=0), omegas)
+                              / max(np.trapezoid(np.trapezoid(abs(fd_reference_derivative[it]) ** 2,
+                                                              omegas, axis=0), omegas), 1e-30)))
+                for it in range(len(t2s))
+            ] if float(h) != float(FD_STEPS[0]) else [0.0] * len(t2s),
+        ))
+
     diagnostics = []
     for sector, maps in (("RP", rp), ("NRP", nrp)):
         for ik, kappa in enumerate(kappas):
@@ -191,6 +261,12 @@ def main():
         out / "three_level_response_maps.npz",
         omegas=omegas, kappas=kappas, t2s=t2s,
         rephasing=rp, nonrephasing=nrp, absorptive=absorptive,
+        fd_center_kappa=FD_CENTER, fd_step=FD_STEP,
+        fd_first_rp=first_rp, fd_second_rp=second_rp,
+        fd_first_nrp=first_nrp, fd_second_nrp=second_nrp,
+        fd_first_absorptive=first_absorptive,
+        fd_second_absorptive=second_absorptive,
+        fd_second_order_reconstruction=fd_reconstructed,
     )
     vals, vecs = np.linalg.eigh(model["H"][1:, 1:])
     summary = dict(
@@ -211,6 +287,13 @@ def main():
         omitted_state="double-exciton state, so no excited-state absorption is included",
         pointwise_checks=diagnostics,
         maximum_pointwise_difference=max(d["absolute_difference"] for d in diagnostics),
+        finite_difference=dict(
+            method="central finite differences of exact RP and NRP maps versus kappa",
+            expansion_center=FD_CENTER, selected_step=FD_STEP,
+            tested_steps=FD_STEPS.tolist(),
+            second_order_reconstruction_errors=fd_records,
+            first_derivative_step_convergence=fd_step_convergence,
+        ),
         elapsed_s=time.time() - t_start,
     )
     (out / "summary.json").write_text(json.dumps(summary, indent=2))
@@ -252,6 +335,34 @@ def main():
                  label=r"$\Delta S_{\rm abs}^{(3)}$")
     fig.suptitle(rf"Transfer-rate deformation at $t_2={t2s[it]:g}$")
     fig.savefig(out / "figure_three_level_transfer_effect.png", dpi=180)
+    # Compare the exact and FD second-order maps at the longest waiting time.
+    t_index = len(t2s) - 1
+    target_indices = [i for i, value in enumerate(kappas) if value != FD_CENTER]
+    fig, axes = plt.subplots(3, len(target_indices),
+                             figsize=(4 * len(target_indices), 9),
+                             constrained_layout=True, squeeze=False)
+    for col, ik in enumerate(target_indices):
+        exact = absorptive[ik, t_index]
+        reconstruction = fd_reconstructed[ik, t_index]
+        err_map = abs(reconstruction - exact)
+        limit = float(max(abs(exact).max(), abs(reconstruction).max()))
+        axes[0, col].imshow(exact, origin="lower", extent=extent, aspect="auto",
+                            cmap="RdBu_r", vmin=-limit, vmax=limit)
+        axes[1, col].imshow(reconstruction, origin="lower", extent=extent,
+                            aspect="auto", cmap="RdBu_r", vmin=-limit, vmax=limit)
+        im = axes[2, col].imshow(err_map, origin="lower", extent=extent,
+                                 aspect="auto", cmap="magma")
+        axes[0, col].set_title(rf"Exact, $\kappa={kappas[ik]:g}$")
+        axes[1, col].set_title("FD second order")
+        axes[2, col].set_title("Absolute map error")
+        for row in range(3):
+            axes[row, col].set_xlabel(r"$\omega_1$")
+            axes[row, col].set_ylabel(r"$\omega_3$")
+    fig.colorbar(im, ax=axes[2, :].tolist(), shrink=.82,
+                 label=r"$|S_{\rm FD}^{(3)}-S_{\rm exact}^{(3)}|$")
+    fig.suptitle(rf"Local FD reconstruction at $t_2={t2s[t_index]:g}$, "
+                 rf"center $\kappa={FD_CENTER:g}$")
+    fig.savefig(out / "figure_fd_reconstruction.png", dpi=180)
     print(f"Computed {len(kappas) * len(t2s)} 2D map pairs on "
           f"{args.n_omega}x{args.n_omega}; max pointwise error "
           f"{summary['maximum_pointwise_difference']:.3e}")

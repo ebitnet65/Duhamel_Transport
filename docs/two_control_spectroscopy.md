@@ -11,18 +11,29 @@ held at \(\gamma_1=0.02\), with \(\omega_0=1\).
 
 ## Spectral calculation
 
-The driver computes the complete rephasing response
-\(S_R^{(3)}(\omega_3,t_2,\omega_1)\) on a square frequency grid. It sums the
-two RWA rephasing pathways using the existing response operators and
-resolvents. The preparation is the aligned-model stationary state at the same
-\(\gamma_\phi\); at \(\theta=0\), this is \(|g\rangle\langle g|\) over the
-tested rate range. The scans use
+The driver computes the complete complex rephasing and nonrephasing responses
+\(S_R^{(3)}(\omega_3,t_2,\omega_1)\) and
+\(S_{NR}^{(3)}(\omega_3,t_2,\omega_1)\), then forms the displayed absorptive
+signal as \(S_{abs}=-\mathrm{Re}(S_R^{(3)}+S_{NR}^{(3)})\) for the sign
+convention used by the response module. The complex channel-resolved maps are
+saved separately, so the displayed combination does not discard phase
+information. Positive plotted excitation and detection frequencies are
+mapped to signed Fourier arguments \((-\omega_1,-\omega_3)\). This was
+checked by comparing the vectorized map calculation with the existing
+pointwise sector response at sampled grid points; the channels agree to
+roundoff.
+
+The two RWA pathways in each sector are included. The preparation is the
+aligned-model stationary state at the same \(\gamma_\phi\); at
+\(\theta=0\), this is \(|g\rangle\langle g|\) over the tested rate range.
+The scans use
 \[
 \theta\in\{0,\pi/4,\pi/2\},\quad
 \gamma_\phi\in\{0.05,0.10,0.20\},\quad
 t_2\in\{0.2,1,5\},
 \]
-with \(\omega_1,\omega_3\in[0.25,1.75]\) and \(\eta=10^{-3}\).
+with \(\omega_1,\omega_3\in[0.25,1.75]\), \(\eta=10^{-3}\), and a
+\(61\times61\) default grid.
 
 Run from the repository root:
 
@@ -30,11 +41,20 @@ Run from the repository root:
 python calculate_two_control_spectroscopy.py --n-omega 61 --out two_control_spectroscopy
 ```
 
-The output directory contains the full complex maps in `response_maps.npz`,
-summary diagnostics in `summary.json`, and exploratory maps as PNG files.
-The scalar deformation metric is the frequency-integrated complex L2
-difference from the aligned-angle map at the same rate and waiting time,
-normalized by the aligned-map L2 norm.
+The output directory contains the channel-resolved complex maps and
+absorptive maps in `response_maps.npz`, summary diagnostics in
+`summary.json`, and the absorptive-spectrum maps as PNG files. The scalar
+deformation metric is the frequency-integrated real-map L2 difference from
+the aligned-angle absorptive map at the same rate and waiting time, normalized
+by the aligned-map L2 norm.
+
+At \(\gamma_\phi=0.10\) and \(\theta=\pi/2\), the relative absorptive-map
+deformation from the aligned case is approximately 1.045, 0.801, and 0.466 at
+\(t_2=0.2,1,5\), respectively. At \(\theta=\pi/2,t_2=1\), changing
+\(\gamma_\phi\) to 0.05 or 0.20 changes the map by approximately 1.157 or
+0.634 relative to \(\gamma_\phi=0.10\). These values describe this
+two-level model and the stated Fourier/phase convention; they are not
+multilevel vibrational spectra.
 
 ## State-generator geometry
 
@@ -61,14 +81,8 @@ condition number is about \(45.4\). The stationary states remain positive
 and normalized, and the sampled Liouvillian spectral gap stays above
 \(0.0202\).
 
-## Preliminary result
-
-Varying `gamma_phi` at `theta=pi/2` changes the `t2=1` map by about 10.4% (`gamma_phi=0.05`) and 12.6% (`gamma_phi=0.20`), relative to `gamma_phi=0.10`, in integrated relative L2 norm.
-
-At `gamma_phi=0.10`, the integrated relative map change between `theta=pi/2` and the aligned map is about 0.374, 0.291, and 0.574 for `t2=0.2,1,5`, respectively. The full maps show a distinct waiting-time-dependent deformation. This supports retaining a short `t2` scan in the revision; it does not establish geometric transport of a spectrum around a parameter-space loop.
-
 At finite angle, the operator \(A_\theta\) has a transverse component in the
-Hamiltonian basis. Thus varying \(\gamma_\phi\) changes both coherence decay
-and the transverse dissipative action. The manuscript should describe this
-control as the rate of the rotated dissipator and avoid interpreting it as a
-pure linewidth parameter.
+Hamiltonian basis. Thus varying \(\gamma_\phi\) changes both coherence
+decay and the transverse dissipative action. The manuscript should describe
+this control as the rate of the rotated dissipator and avoid interpreting it
+as a pure linewidth parameter.

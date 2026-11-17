@@ -37,7 +37,8 @@ It preserves the reference metric to \(4.2\times10^{-9}\); reverse
 transport composed with forward transport differs from identity by
 \(2.7\times10^{-9}\). The transported spectral-sensitivity fields change
 by about 0.95% in integrated metric norm for each waiting time and pathway
-sector. Integration convergence from 32 to 64 steps per edge is
+sector. The reference-node vectorized RP/NRP values agree with independent
+pointwise calculations to 0 and 1.8e-15, respectively. Integration convergence from 32 to 64 steps per edge is
 \(1.5\times10^{-8}\).
 
 This is holonomy of the response-sensitivity vectors under the Levi-Civita

@@ -34,13 +34,27 @@ pathway components deform under the rotated dephasing Liouvillian.
   transport-matrix diagnostics.
 - `run_liouville_transport.py`: command-line driver for transport sweeps and
   plots.
+- `calculate_two_control_spectroscopy.py`: full 2D rephasing maps and finite-difference
+  state-generator geometry for the two-control revision calculation.
 - `Compute_responses.py`: response computation helper.
 - `curvature_plots.py`: plotting utilities for response/curvature outputs.
 - `diagnose_reference_basis.py`: lambda-zero basis conditioning diagnostics.
 - `diagnose_transport_stages.py`: stage-by-stage basis conditioning diagnostics.
 - `run_all_diagnostics.sh`: runs both diagnostic scripts.
 
-## Two-Control Revision Calculation\n\nThe new exploratory calculation varies the dephasing-axis angle and dephasing\nrate, computes full rephasing maps over a small waiting-time scan, and checks\nthe induced state-generator metric and Gaussian curvature. See\n[`docs/two_control_spectroscopy.md`](docs/two_control_spectroscopy.md) for\nconventions and preliminary diagnostics. Run it with:\n\n```bash\npython calculate_two_control_spectroscopy.py --n-omega 61 --out two_control_spectroscopy\n```\n\n## Basic Run
+## Two-Control Revision Calculation
+
+The new exploratory calculation varies the dephasing-axis angle and dephasing
+rate, computes full rephasing maps over a small waiting-time scan, and checks
+the induced state-generator metric and Gaussian curvature. See
+[`docs/two_control_spectroscopy.md`](docs/two_control_spectroscopy.md) for
+conventions and preliminary diagnostics. Run it with:
+
+```bash
+python calculate_two_control_spectroscopy.py --n-omega 61 --out two_control_spectroscopy
+```
+
+## Basic Run
 
 From this directory:
 

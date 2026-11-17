@@ -63,12 +63,7 @@ and normalized, and the sampled Liouvillian spectral gap stays above
 
 ## Preliminary result
 
-At \\(\\theta=\\pi/2\\), changing \\(\\gamma_\\phi\\) from 0.10 to 0.05 or 0.20 changes the \\(t_2=1\\) map by about 10.4% or 12.6% in integrated relative L2 norm.\n\nAt \(\gamma_\phi=0.10\), the integrated relative map change between
-\(\theta=\pi/2\) and the aligned map is about 0.374, 0.291, and 0.574 for
-\(t_2=0.2,1,5\), respectively. The full maps show a distinct
-waiting-time-dependent deformation. This supports retaining a short \(t_2\)
-scan in the revision; it does not establish geometric transport of a spectrum
-around a parameter-space loop.
+Varying `gamma_phi` at `theta=pi/2` changes the `t2=1` map by about 10.4% (`gamma_phi=0.05`) and 12.6% (`gamma_phi=0.20`), relative to `gamma_phi=0.10`, in integrated relative L2 norm.
 
 At finite angle, the operator \(A_\theta\) has a transverse component in the
 Hamiltonian basis. Thus varying \(\gamma_\phi\) changes both coherence decay

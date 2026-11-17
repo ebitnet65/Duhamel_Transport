@@ -185,6 +185,17 @@ def main():
                 minus, _ = sector_map(float(FD_CENTER - h), float(t2), omegas, sector)
                 fd_cache[(float(h), it, sector)] = (plus, minus)
 
+    fd_center_rp = np.empty((len(t2s), len(omegas), len(omegas)), complex)
+    fd_center_nrp = np.empty_like(fd_center_rp)
+    center_matches = np.flatnonzero(np.isclose(kappas, FD_CENTER))
+    for it, t2 in enumerate(t2s):
+        if center_matches.size:
+            fd_center_rp[it] = rp[center_matches[0], it]
+            fd_center_nrp[it] = nrp[center_matches[0], it]
+        else:
+            fd_center_rp[it], _ = sector_map(FD_CENTER, float(t2), omegas, "RP")
+            fd_center_nrp[it], _ = sector_map(FD_CENTER, float(t2), omegas, "NRP")
+
     first_rp = np.empty((len(t2s), len(omegas), len(omegas)), complex)
     second_rp = np.empty_like(first_rp)
     first_nrp = np.empty_like(first_rp)
@@ -194,12 +205,11 @@ def main():
             ("RP", first_rp, second_rp), ("NRP", first_nrp, second_nrp)
         ):
             plus, minus = fd_cache[(FD_STEP, it, sector)]
-            center = rp[np.flatnonzero(kappas == FD_CENTER)[0], it] if sector == "RP" else nrp[np.flatnonzero(kappas == FD_CENTER)[0], it]
+            center = fd_center_rp[it] if sector == "RP" else fd_center_nrp[it]
             first_out[it] = (plus - minus) / (2.0 * FD_STEP)
             second_out[it] = (plus - 2.0 * center + minus) / (FD_STEP ** 2)
 
-    center_index = int(np.flatnonzero(kappas == FD_CENTER)[0])
-    center_absorptive = absorptive[center_index]
+    center_absorptive = -(fd_center_rp + fd_center_nrp).real
     first_absorptive = -(first_rp + first_nrp).real
     second_absorptive = -(second_rp + second_nrp).real
     fd_reconstructed = np.empty_like(absorptive)
@@ -262,6 +272,7 @@ def main():
         omegas=omegas, kappas=kappas, t2s=t2s,
         rephasing=rp, nonrephasing=nrp, absorptive=absorptive,
         fd_center_kappa=FD_CENTER, fd_step=FD_STEP,
+        fd_center_rp=fd_center_rp, fd_center_nrp=fd_center_nrp,
         fd_first_rp=first_rp, fd_second_rp=second_rp,
         fd_first_nrp=first_nrp, fd_second_nrp=second_nrp,
         fd_first_absorptive=first_absorptive,

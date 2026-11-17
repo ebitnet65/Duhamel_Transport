@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 
 import calculate_two_control_spectroscopy as tls
+import phase_matched_response as response
 
 
 THETAS = np.array([0.0, np.pi / 8, np.pi / 4, 3 * np.pi / 8, np.pi / 2])
@@ -129,6 +130,22 @@ def main():
                 absorptive[ig, it, jt], rp[ig, it, jt], nrp[ig, it, jt] = \
                     absorptive_map(theta, gamma_scaled, t2, omegas)
 
+    # Pointwise convention check at the reference node for both sectors.
+    ref_it = int(np.flatnonzero(THETAS == np.pi / 4)[0])
+    ref_ig = int(np.flatnonzero(GAMMA_SCALED == 1.0)[0])
+    ref_jt = int(np.flatnonzero(T2S == 1.0)[0])
+    iw1, iw3 = len(omegas) // 3, 2 * len(omegas) // 3
+    pointwise_checks = []
+    for sector, maps in (("RP", rp), ("NRP", nrp)):
+        direct = response.signal_point_sector(
+            np.pi / 4, -float(omegas[iw1]), -float(omegas[iw3]), sector,
+            tau2=1.0, w0=tls.W0, gamma_phi=tls.GPHI_REF,
+            gamma1=tls.GAMMA1, eta=tls.ETA, detection="full",
+            initial="fixed_steady0")
+        pointwise_checks.append(dict(
+            sector=sector,
+            absolute_difference=float(abs(maps[ref_ig, ref_it, ref_jt, iw1, iw3] - direct))))
+
     fd_first = np.empty((len(GAMMA_SCALED), len(THETAS), 2,
                          len(T2S), len(omegas), len(omegas)), float)
     fd_first_rp = np.empty(fd_first.shape, complex)
@@ -243,6 +260,7 @@ def main():
                 steps=H_FD, expansion_center=q0.tolist(),
                 second_order_surface_errors=reconstruction_errors,
                 step_convergence=step_check),
+        pointwise_checks=pointwise_checks,
         state_generator_geometry=dict(
             embedding="real/imag stationary state plus full Liouvillian",
             generator_scale=1.0,

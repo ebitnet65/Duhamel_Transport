@@ -37,6 +37,8 @@ pathway components deform under the rotated dephasing Liouvillian.
 - `calculate_two_control_spectroscopy.py`: complete complex rephasing and
   nonrephasing 2D maps, their absorptive combination, and finite-difference
   state-generator geometry for the two-control revision calculation.
+- `calculate_three_level_bright_spectra.py`: full 2D spectra for the
+  `|G>, |B1>, |B2>` model with interbright relaxation.
 - `Compute_responses.py`: response computation helper.
 - `curvature_plots.py`: plotting utilities for response/curvature outputs.
 - `diagnose_reference_basis.py`: lambda-zero basis conditioning diagnostics.
@@ -49,14 +51,29 @@ The exploratory calculation varies the dephasing-axis angle and dephasing
 rate. It computes separate full complex rephasing and nonrephasing maps, forms
 the phase-corrected absorptive map, scans three waiting times, and checks the
 induced state-generator metric and Gaussian curvature. Positive plotted
-frequencies are passed to the response resolvents with signed arguments
-`(-omega1,-omega3)`; the reported absorptive signal is
-`-Re(RP + NRP)`. See
-[`docs/two_control_spectroscopy.md`](docs/two_control_spectroscopy.md) for
-the conventions and diagnostics. Run it with:
+frequencies use signed arguments `(-omega1,-omega3)`; the absorptive signal
+is `-Re(RP + NRP)`. See
+[`docs/two_control_spectroscopy.md`](docs/two_control_spectroscopy.md).
+
+Run it with:
 
 ```bash
 python calculate_two_control_spectroscopy.py --n-omega 61 --out two_control_spectroscopy
+```
+
+## Three-Level Bright-State Calculation
+
+The three-level extension uses the lower and upper eigenstates of the SAKE
+dimer one-exciton Hamiltonian as `B1` and `B2`, but omits the double-exciton
+state. It adds one-way `B2 -> B1` relaxation and computes full RP, NRP, and
+absorptive maps over waiting time and transfer rate. The model and spectral
+conventions are documented in
+[`docs/three_level_bright_spectroscopy.md`](docs/three_level_bright_spectroscopy.md).
+
+Run it with:
+
+```bash
+python calculate_three_level_bright_spectra.py --n-omega 81 --out three_level_bright_spectra
 ```
 
 ## Basic Run

@@ -17,6 +17,9 @@ parts of the stationary density matrix and full Liouvillian, with generator
 scale one in reduced units \(\omega_0=1\). The induced metric and its
 Levi-Civita connection give Gaussian curvature \(K=-0.62916\) at the
 reference point.
+At the reference point, Gaussian curvature changes by less than
+\(3.3\times10^{-6}\) as the central-difference step decreases from
+\(10^{-3}\) to \(3\times10^{-5}\).
 
 For a geometric response diagnostic, the metric-raised gradients of the RP,
 NRP, and absorptive spectral maps at the reference point are parallel-
